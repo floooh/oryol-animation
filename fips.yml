@@ -2,25 +2,12 @@
 # oryol-animation
 #
 ---
-#   imports:
-#       PROJ-NAME:
-#           git: GIT-URL
-#           branch: OPTIONAL BRANCH OR TAG NAME
-#   exports:
-#       header-dirs:
-#           - RELATIVE HEADER SEARCH PATH
-#           - ...
-#       lib-dirs:
-#           - RELATIVE LIB SEARCH PATH
-#           - ...
-#       defines:
-#           KEY: VALUE (C preprocessor defines)
-#           ...: ...
-#       modules:
-#           NAME:   DIRECTORY WITH CMakeLists.txt of MODULE
-#           ...: ...
-#   run:
-#       TARGET-NAME:
-#           cwd:    WORKING DIRECTORY FOR 'fips run target'
-#       ...
+imports:
+    oryol:
+        git:    https://github.com/floooh/oryol.git
+exports:
+    header-dirs:
+        src
+    modules:
+        Anim:   src/Anim
 
