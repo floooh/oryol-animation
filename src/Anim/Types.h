@@ -3,6 +3,7 @@
 #include "Core/Types.h"
 #include "Core/Containers/Map.h"
 #include "Core/String/StringAtom.h"
+#include "Resource/Id.h"
 #include "glm/vec4.hpp"
 
 namespace Oryol {
@@ -137,8 +138,20 @@ struct AnimLibrary {
     int StartClipIndex = InvalidIndex;
     /// number of clips in anim pool
     int NumClips = 0;
+    /// index of first curve in global anim curve pool
+    int StartCurveIndex = InvalidIndex;
+    /// overall number of anim curves in the lib
+    int NumCurves = 0;
+    /// byte-offset of first anim key in global key buffer
+    int StartKeyOffset = InvalidIndex;
+    /// byte-size of key range in global key buffer
+    int KeyRangeSize = 0;
     /// map clip names to clip indices (relative to StartClipIndex)
     Map<StringAtom, int> ClipNameMap;
+    /// resource id of AnimLibrary, written when lib is added to AnimSystem
+    Id id;
+    /// name of the AnimLibrary, written when lib is added to AnimSystem
+    StringAtom name;
 };
 
 } // namespace Oryol

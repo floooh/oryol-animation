@@ -1,6 +1,7 @@
 #pragma once
 //------------------------------------------------------------------------------
 #include "Anim/Types.h"
+#include "Core/Containers/Buffer.h"
 #include "Core/Containers/Array.h"
 #include "Core/Containers/Queue.h"
 #include "Core/String/StringAtom.h"
@@ -41,39 +42,86 @@ public:
     ~AnimSystem();
 
     /// setup the AnimSystem object
-    void Setup(const AnimSystemSetup& setup);
+    void Setup(const AnimSystemSetup& setup = AnimSystemSetup());
     /// discard the AnimSystem object
     void Discard();
     /// return true if the AnimSystem object has been setup
     bool IsValid() const;
 
+    /// get current key buffer size in number of bytes
+    int KeyBufferSize() const;
+    /// access to keybuffer
+    const Buffer& KeyBuffer() const;
+    /// get number of anim curves
+    int NumCurves() const;
+    /// get anim curve at index
+    const AnimCurve& Curve(int index) const;
+    /// get number of anim clips
+    int NumClips() const;
+    /// get anim clip at index
+    const AnimClip& Clip(int index) const;
+
     /// add key data to key buffer, return byte offset of first key
-    int AddKeys(const void* data, int size);
+    void AddKeys(const uint8_t* data, int byteSize);
     /// add AnimCurve object and return it's slot index
-    int AddCurve(const AnimCurve& curve);
+    void AddCurve(const AnimCurve& curve);
     /// add AnimClip object and return it's slot index
-    int AddClip(const AnimClip& clip);
+    void AddClip(const AnimClip& clip);
 
     /// add AnimLibrary object and return it's slot index
-    Id AddLibrary(const StringAtom& name, const AnimLibrary& lib);
-    /// remove library by Id (also removes its keys, curves and clips)
-    void RemLibrary(const Id& id);
+    Id AddLibrary(const StringAtom& name, AnimLibrary&& lib);
     /// find anim library index by name, return InvalidIndex if not found
     Id LookupLibrary(const StringAtom& name);
     /// get pointer to library by Id (may return nullptr!)
-    AnimLibrary* Library(const Id& id) const;
+    const AnimLibrary* Library(const Id& id) const;
+    /// remove library by Id (also removes its keys, curves and clips)
+    void RemLibrary(const Id& id);
 
 private:
-    uint8_t* keyBuffer = nullptr;
-    const uint8_t* keyBufferEnd = nullptr;
+    Buffer keyBuffer;
     Array<AnimCurve> curves;
     Array<AnimClip> clips;
     Array<AnimLibrary> libs;
+    Map<StringAtom, Id> libNameMap;
     Queue<uint16_t> libFreeSlots;
+    Id::UniqueStampT uniqueStamp = 0;
     bool isValid = false;
 };
 
+//------------------------------------------------------------------------------
+inline int
+AnimSystem::KeyBufferSize() const {
+    return this->keyBuffer.Size();
+}
+
+//------------------------------------------------------------------------------
+inline int
+AnimSystem::NumCurves() const {
+    return this->curves.Size();
+}
+
+//------------------------------------------------------------------------------
+inline const AnimCurve&
+AnimSystem::Curve(int index) const {
+    return this->curves[index];
+}
+
+//------------------------------------------------------------------------------
+inline int
+AnimSystem::NumClips() const {
+    return this->clips.Size();
+}
+
+//------------------------------------------------------------------------------
+inline const AnimClip&
+AnimSystem::Clip(int index) const {
+    return this->clips[index];
+}
+
+//------------------------------------------------------------------------------
+inline const Buffer&
+AnimSystem::KeyBuffer() const {
+    return this->keyBuffer;
+}
+
 } // namespace Oryol
-
-
-
