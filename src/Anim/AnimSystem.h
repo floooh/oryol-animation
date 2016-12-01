@@ -18,7 +18,11 @@ namespace Oryol {
 class AnimSystemSetup {
 public:
     /// size of global anim key buffer (in bytes)
-    int AnimKeyBufferSize = 5 * 1024 * 1024;
+    int KeyBufferSize = 5 * 1024 * 1024;
+    /// size of a sampling/mixing buffer
+    int SampleBufferSize = 16 * 1024;
+    /// number of sample/mixing buffers
+    int NumSampleBuffers = 2;
     /// max number of AnimLibrary objects
     int MaxAnimLibs = 16;
     /// max number of AnimClip objects
@@ -77,8 +81,15 @@ public:
     /// remove library by Id (also removes its keys, curves and clips)
     void RemLibrary(const Id& id);
 
+    /// perform a sampling operation into one of the sample buffers
+    void Sample(int clipIndex, int64_t time, AnimSampleMode::Code sampleMode, AnimWrapMode::Code wrapMode, int dstSampleBufferIndex);
+    /// perform a mixing operation between 2 sampled clips
+    void Mix(int clip0Index, int clip1Index, float weight0, float weight1, int srcSampleBufferIndex0, int srcSampleBufferIndex1, int dstSampleBufferIndex);
+
 private:
+    AnimSystemSetup setup;
     Buffer keyBuffer;
+    Buffer sampleBuffer;
     Array<AnimCurve> curves;
     Array<AnimClip> clips;
     Array<AnimLibrary> libs;

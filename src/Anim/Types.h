@@ -17,13 +17,13 @@ namespace Oryol {
 struct AnimKeyFormat {
     /// animation curve format enum
     enum Code {
-        Float,          ///< single component float
-        Float2,         ///< 2-component float
-        Float3,         ///< 3-component float
         Float4,         ///< 4-component float
+        Float3,         ///< 3-component float
+        Float2,         ///< 2-component float
+        Float,          ///< single component float
         Byte4N,         ///< signed bytes (-1.0..+1.0), mapped to (-128..127)
-        Short2N,        ///< 2 signed shorts (-1.0..+1.0), mapped to (-32768..32767)
         Short4N,        ///< 4 signed shorts (-1.0..+1.0), mapped to (-32768..32767)
+        Short2N,        ///< 2 signed shorts (-1.0..+1.0), mapped to (-32768..32767)
 
         Num,
         Invalid,
@@ -105,7 +105,7 @@ struct AnimCurve {
     /// format of animation keys
     AnimKeyFormat::Code Format = AnimKeyFormat::Invalid;
     /// constant key value (if AnimIpolType is Constant)
-    glm::vec4 Constant;
+    float Constant[4] = { };
     /// byte-offset of first key in key buffer
     int KeyOffset = InvalidIndex;
 };
@@ -125,6 +125,8 @@ struct AnimClip {
     int NumKeys = 0;
     /// byte-stride between keys
     int KeyStride = 0;
+    /// the key duration in 'anim ticks'
+    int KeyDuration = 0;
 };
 
 //------------------------------------------------------------------------------

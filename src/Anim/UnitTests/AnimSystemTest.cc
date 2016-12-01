@@ -72,6 +72,7 @@ TEST(AnimSytem) {
     clip.NumCurves = 1;
     clip.NumKeys = 10;
     clip.KeyStride = AnimKeyFormat::ByteSize(AnimKeyFormat::Float);
+    clip.KeyDuration = 1000000 / 25;
     anim.AddClip(clip);
     clip.StartCurveIndex = startCurveIndex + 1;
     clip.NumKeys = 20;
