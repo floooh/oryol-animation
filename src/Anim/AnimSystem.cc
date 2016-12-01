@@ -28,7 +28,7 @@ AnimSystem::Setup(const AnimSystemSetup& setup_) {
 
     this->setup = setup_;
     this->keyBuffer.Reserve(this->setup.KeyBufferSize);
-    this->sampleBuffer.Reserve(this->setup.SampleBufferSize * this->setup.NumSampleBuffers);
+    this->sampleBuffer.Add(this->setup.SampleBufferSize * this->setup.NumSampleBuffers);
 
     // reserve max size and prevent growing
     this->curves.Reserve(this->setup.MaxAnimCurves);
@@ -62,13 +62,15 @@ AnimSystem::Discard() {
 }
 
 //------------------------------------------------------------------------------
-void
-AnimSystem::AddKeys(const uint8_t* data, int byteSize) {
+int
+AnimSystem::AddKeys(const void* data, int byteSize) {
     o_assert_dbg(this->isValid);
     o_assert_dbg(data && (byteSize > 0));
     o_assert_dbg((this->keyBuffer.Size() + byteSize) <= this->keyBuffer.Capacity());
 
-    this->keyBuffer.Add(data, byteSize);
+    const int offset = this->keyBuffer.Size();
+    this->keyBuffer.Add((const uint8_t*)data, byteSize);
+    return offset;
 }
 
 //------------------------------------------------------------------------------
@@ -78,6 +80,7 @@ AnimSystem::AddCurve(const AnimCurve& curve) {
     o_assert_dbg(curve.KeyOffset != InvalidIndex);
     o_assert_dbg(curve.IpolType != AnimIpolType::Invalid);
     o_assert_dbg(curve.Format != AnimKeyFormat::Invalid);
+    o_assert_dbg(curve.KeyStride > 0);
 
     this->curves.Add(curve);
 }
@@ -89,7 +92,6 @@ AnimSystem::AddClip(const AnimClip& clip) {
     o_assert_dbg(clip.StartCurveIndex != InvalidIndex);
     o_assert_dbg(clip.NumCurves > 0);
     o_assert_dbg(clip.NumKeys > 0);
-    o_assert_dbg(clip.KeyStride > 0);
     o_assert_dbg(clip.KeyDuration > 0);
 
     this->clips.Add(clip);
@@ -102,10 +104,13 @@ AnimSystem::AddLibrary(const StringAtom& name, AnimLibrary&& lib) {
     o_assert_dbg(!this->libNameMap.Contains(name));
     o_assert_dbg(lib.StartClipIndex != InvalidIndex);
     o_assert_dbg(lib.NumClips > 0);
+    o_assert_dbg((lib.StartClipIndex + lib.NumClips) <= this->NumClips());
     o_assert_dbg(lib.StartCurveIndex != InvalidIndex);
     o_assert_dbg(lib.NumCurves > 0);
+    o_assert_dbg((lib.StartCurveIndex + lib.NumCurves) <= this->NumCurves());
     o_assert_dbg(lib.StartKeyOffset != InvalidIndex);
     o_assert_dbg(lib.KeyRangeSize > 0);
+    o_assert_dbg((lib.StartKeyOffset + lib.KeyRangeSize) <= this->keyBuffer.Size());
 
     const uint16_t slotIndex = this->libFreeSlots.Dequeue();
     auto& slot = this->libs[slotIndex];
@@ -313,22 +318,26 @@ AnimSystem::Sample(int clipIndex, int64_t time, AnimSampleMode::Code sampleMode,
     o_assert_dbg(clipIndex < this->clips.Size());
     o_assert_range(dstSampleBufferIndex, this->setup.NumSampleBuffers);
 
-    // FIXME: add range checks for access to keybuffer and samplebuffer!
-
     const AnimClip& clip = this->clips[clipIndex];
-    const auto* curve = &(this->curves[clip.StartCurveIndex]);
     const uint8_t* keyPtr = this->keyBuffer.Data();
     float* dstPtr = (float*)(this->sampleBuffer.Data() + dstSampleBufferIndex * this->setup.SampleBufferSize);
+    #if ORYOL_DEBUG
+    const uint8_t* keyEndPtr = this->keyBuffer.Data() + this->keyBuffer.Size();
+    const float* dstEndPtr = (float*)(this->sampleBuffer.Data() + this->sampleBuffer.Size());
+    #endif
     const int keyIndex0 = wrapKeyIndex(time / clip.KeyDuration, clip.NumKeys, wrapMode);
     if (AnimSampleMode::Step == sampleMode) {
         for (int i = 0; i < clip.NumCurves; i++) {
-            if (curve[i].IpolType == AnimIpolType::Constant) {
-                const float* srcPtr = &(curve[i].Constant[0]);
-                unpack_float(curve[i].Format, srcPtr, dstPtr);
+            const auto& curve = curves[clip.StartCurveIndex + i];
+            o_assert_dbg((dstPtr + 4) <= dstEndPtr);
+            if (curve.IpolType == AnimIpolType::Constant) {
+                const float* srcPtr = &(curve.Constant[0]);
+                unpack_float(curve.Format, srcPtr, dstPtr);
             }
             else {
-                const uint8_t* srcPtr = keyPtr + curve[i].KeyOffset + keyIndex0 * clip.KeyStride;
-                unpack(curve[i].Format, srcPtr, dstPtr);
+                const uint8_t* srcPtr = keyPtr + curve.KeyOffset + keyIndex0 * curve.KeyStride;
+                unpack(curve.Format, srcPtr, dstPtr);
+                o_assert_dbg(srcPtr <= keyEndPtr);
             }
         }
     }
@@ -339,20 +348,24 @@ AnimSystem::Sample(int clipIndex, int64_t time, AnimSampleMode::Code sampleMode,
         float* dstPtr = (float*)(this->sampleBuffer.Data() + dstSampleBufferIndex * this->setup.SampleBufferSize);
         float unpackBuffer[8];
         for (int i = 0; i < clip.NumCurves; i++) {
-            if (curve[i].IpolType == AnimIpolType::Constant) {
-                const float* srcPtr = &(curve[i].Constant[0]);
-                unpack_float(curve[i].Format, srcPtr, dstPtr);
+            const auto& curve = curves[clip.StartCurveIndex + i];
+            o_assert_dbg((dstPtr + 4) <= dstEndPtr);
+            if (curve.IpolType == AnimIpolType::Constant) {
+                const float* srcPtr = &(curve.Constant[0]);
+                unpack_float(curve.Format, srcPtr, dstPtr);
             }
             else {
                 float* sample0 = &(unpackBuffer[0]);
                 float* sample1 = &(unpackBuffer[4]);
-                const uint8_t* src0Ptr = keyPtr + curve[i].KeyOffset + keyIndex0 * clip.KeyStride;
-                const uint8_t* src1Ptr = keyPtr + curve[i].KeyOffset + keyIndex1 * clip.KeyStride;
-                unpack(curve[i].Format, src0Ptr, sample0);
-                unpack(curve[i].Format, src1Ptr, sample1);
+                const uint8_t* src0Ptr = keyPtr + curve.KeyOffset + keyIndex0 * curve.KeyStride;
+                const uint8_t* src1Ptr = keyPtr + curve.KeyOffset + keyIndex1 * curve.KeyStride;
+                unpack(curve.Format, src0Ptr, sample0);
+                unpack(curve.Format, src1Ptr, sample1);
+                o_assert_dbg(src0Ptr < keyEndPtr);
+                o_assert_dbg(src1Ptr < keyEndPtr);
                 // FIXME: use simple linear interpolation for quaternions, assumes
                 // that rotation keys are close to each other!
-                switch (curve[i].Format) {
+                switch (curve.Format) {
                     float s0;
                     case AnimKeyFormat::Float4:
                     case AnimKeyFormat::Byte4N:

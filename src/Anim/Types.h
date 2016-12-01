@@ -108,6 +108,8 @@ struct AnimCurve {
     float Constant[4] = { };
     /// byte-offset of first key in key buffer
     int KeyOffset = InvalidIndex;
+    /// byte-stride between keys
+    int KeyStride = 0;
 };
 
 //------------------------------------------------------------------------------
@@ -123,8 +125,6 @@ struct AnimClip {
     int NumCurves = 0;
     /// number of keys (same for all anim curves)
     int NumKeys = 0;
-    /// byte-stride between keys
-    int KeyStride = 0;
     /// the key duration in 'anim ticks'
     int KeyDuration = 0;
 };

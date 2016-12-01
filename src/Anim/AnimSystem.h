@@ -52,8 +52,6 @@ public:
     /// return true if the AnimSystem object has been setup
     bool IsValid() const;
 
-    /// get current key buffer size in number of bytes
-    int KeyBufferSize() const;
     /// access to keybuffer
     const Buffer& KeyBuffer() const;
     /// get number of anim curves
@@ -66,7 +64,7 @@ public:
     const AnimClip& Clip(int index) const;
 
     /// add key data to key buffer, return byte offset of first key
-    void AddKeys(const uint8_t* data, int byteSize);
+    int AddKeys(const void* data, int byteSize);
     /// add AnimCurve object and return it's slot index
     void AddCurve(const AnimCurve& curve);
     /// add AnimClip object and return it's slot index
@@ -98,12 +96,6 @@ private:
     Id::UniqueStampT uniqueStamp = 0;
     bool isValid = false;
 };
-
-//------------------------------------------------------------------------------
-inline int
-AnimSystem::KeyBufferSize() const {
-    return this->keyBuffer.Size();
-}
 
 //------------------------------------------------------------------------------
 inline int
