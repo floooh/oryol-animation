@@ -267,18 +267,18 @@ unpack(AnimKeyFormat::Code fmt, const uint8_t*& srcPtr, float*& dstPtr) {
             *dstPtr++ = *(float*)srcPtr; srcPtr+=4;
             break;
         case AnimKeyFormat::Byte4N:
-            *dstPtr++ = (float(*srcPtr)/255.0f)*2.0f-1.0f; srcPtr++;
-            *dstPtr++ = (float(*srcPtr)/255.0f)*2.0f-1.0f; srcPtr++;
-            *dstPtr++ = (float(*srcPtr)/255.0f)*2.0f-1.0f; srcPtr++;
-            *dstPtr++ = (float(*srcPtr)/255.0f)*2.0f-1.0f; srcPtr++;
+            *dstPtr++ = (float(*(int8_t*)srcPtr))/127.0f; srcPtr++;
+            *dstPtr++ = (float(*(int8_t*)srcPtr))/127.0f; srcPtr++;
+            *dstPtr++ = (float(*(int8_t*)srcPtr))/127.0f; srcPtr++;
+            *dstPtr++ = (float(*(int8_t*)srcPtr))/127.0f; srcPtr++;
             break;
         case AnimKeyFormat::Short4N:
-            *dstPtr++ = (float(*(uint16_t*)srcPtr)/32767.0f)*2.0f-1.0f; srcPtr+=2;
-            *dstPtr++ = (float(*(uint16_t*)srcPtr)/32767.0f)*2.0f-1.0f; srcPtr+=2;
+            *dstPtr++ = (float(*(int16_t*)srcPtr))/32767.0f; srcPtr+=2;
+            *dstPtr++ = (float(*(int16_t*)srcPtr))/32767.0f; srcPtr+=2;
             // fallthrough
         case AnimKeyFormat::Short2N:
-            *dstPtr++ = (float(*(uint16_t*)srcPtr)/32767.0f)*2.0f-1.0f; srcPtr+=2;
-            *dstPtr++ = (float(*(uint16_t*)srcPtr)/32767.0f)*2.0f-1.0f; srcPtr+=2;
+            *dstPtr++ = (float(*(int16_t*)srcPtr))/32767.0f; srcPtr+=2;
+            *dstPtr++ = (float(*(int16_t*)srcPtr))/32767.0f; srcPtr+=2;
             break;
         default:
             // should not happen

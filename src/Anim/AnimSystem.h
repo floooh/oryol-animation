@@ -84,6 +84,9 @@ public:
     /// perform a mixing operation between 2 sampled clips
     void Mix(int clip0Index, int clip1Index, float weight0, float weight1, int srcSampleBufferIndex0, int srcSampleBufferIndex1, int dstSampleBufferIndex);
 
+    /// read access to internal sample buffer
+    const float* SampleBuffer(int bufferIndex) const;
+
 private:
     AnimSystemSetup setup;
     Buffer keyBuffer;
@@ -125,6 +128,13 @@ AnimSystem::Clip(int index) const {
 inline const Buffer&
 AnimSystem::KeyBuffer() const {
     return this->keyBuffer;
+}
+
+//------------------------------------------------------------------------------
+inline const float*
+AnimSystem::SampleBuffer(int bufferIndex) const {
+    o_assert_range_dbg(bufferIndex, this->setup.NumSampleBuffers);
+    return (const float*) (this->sampleBuffer.Data() + bufferIndex * this->setup.SampleBufferSize);
 }
 
 } // namespace Oryol

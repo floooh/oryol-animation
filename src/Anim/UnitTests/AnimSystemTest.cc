@@ -189,13 +189,14 @@ TEST(AnimSystem_Sample) {
     std::array<uint64_t, numKeys> keysShort4N;
 
     for (int i = 0; i < numKeys; i++) {
-        keysFloat[i] = float(i);
-        keysFloat2[i] = glm::vec2(i*2.0f, i*3.0f);
-        keysFloat3[i] = glm::vec3(i*4.0f, i*5.0f, i*6.0f);
-        keysFloat4[i] = glm::vec4(i*7.0f, i*8.0f, i*9.0f, i*10.0f);
-        keysByte4N[i] = glm::packSnorm4x8(glm::vec4(i*11.0f, i*12.0f, i*13.0f, i*14.0f));
-        keysShort2N[i] = glm::packSnorm2x16(glm::vec2(i*15.0f, i*16.0f));
-        keysShort4N[i] = glm::packSnorm4x16(glm::vec4(i*17.0f, i*18.0f, i*19.0f, i*20.0f));
+        float v = float(i+1);
+        keysFloat[i] = float(v);
+        keysFloat2[i] = glm::vec2(v*2.0f, v*3.0f);
+        keysFloat3[i] = glm::vec3(v*4.0f, v*5.0f, v*6.0f);
+        keysFloat4[i] = glm::vec4(v*7.0f, v*8.0f, v*9.0f, v*10.0f);
+        keysByte4N[i] = glm::packSnorm4x8(glm::vec4(v*0.05f, v*0.06f, v*0.07f, v*0.08f));
+        keysShort2N[i] = glm::packSnorm2x16(glm::vec2(v*0.05f, v*0.06f));
+        keysShort4N[i] = glm::packSnorm4x16(glm::vec4(v*0.05f, v*0.06f, v*0.07f, v*0.08f));
     }
 
     AnimCurve curve;
@@ -250,5 +251,33 @@ TEST(AnimSystem_Sample) {
     anim.Sample(0, 0, AnimSampleMode::Step, AnimWrapMode::Clamp, 0);
     anim.Sample(0, keyDuration * 1, AnimSampleMode::Step, AnimWrapMode::Clamp, 1);
 
-
+    const float* smp0 = anim.SampleBuffer(0);
+    const float* smp1 = anim.SampleBuffer(1);
+    // curve 0 (Float)
+    CHECK_CLOSE(1.0f, smp0[0], 0.00001f);
+    // curve 1 (Float2)
+    CHECK_CLOSE(2.0f, smp0[1], 0.00001f);
+    CHECK_CLOSE(3.0f, smp0[2], 0.00001f);
+    // curve 2 (Float3)
+    CHECK_CLOSE(4.0f, smp0[3], 0.00001f);
+    CHECK_CLOSE(5.0f, smp0[4], 0.00001f);
+    CHECK_CLOSE(6.0f, smp0[5], 0.00001f);
+    // curve 3 (Float4)
+    CHECK_CLOSE(7.0f, smp0[6], 0.00001f);
+    CHECK_CLOSE(8.0f, smp0[7], 0.00001f);
+    CHECK_CLOSE(9.0f, smp0[8], 0.00001f);
+    CHECK_CLOSE(10.0f, smp0[9], 0.00001f);
+    // curve 4 (Byte4N)
+    CHECK_CLOSE(0.05f, smp0[10], (1.0f / 127.0f));
+    CHECK_CLOSE(0.06f, smp0[11], (1.0f / 127.0f));
+    CHECK_CLOSE(0.07f, smp0[12], (1.0f / 127.0f));
+    CHECK_CLOSE(0.08f, smp0[13], (1.0f / 127.0f));
+    // curve 5 (Short2N)
+    CHECK_CLOSE(0.05f, smp0[14], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.06f, smp0[15], (1.0f / 32767.0f));
+    // curve 5 (Short4N)
+    CHECK_CLOSE(0.05f, smp0[16], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.06f, smp0[17], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.07f, smp0[18], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.08f, smp0[19], (1.0f / 32767.0f));
 }
