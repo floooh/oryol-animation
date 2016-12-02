@@ -344,7 +344,7 @@ AnimSystem::Sample(int clipIndex, int64_t time, AnimSampleMode::Code sampleMode,
     else {
         const int keyIndex1 = wrapKeyIndex(keyIndex0 + 1, clip.NumKeys, wrapMode);
         const int inbetweenTicks = computeInbetweenTicks(time, clip.NumKeys, clip.KeyDuration, wrapMode);
-        const float weight = float(inbetweenTicks) / float(clip.KeyDuration);
+        const float t = float(inbetweenTicks) / float(clip.KeyDuration);
         float* dstPtr = (float*)(this->sampleBuffer.Data() + dstSampleBufferIndex * this->setup.SampleBufferSize);
         float unpackBuffer[8];
         for (int i = 0; i < clip.NumCurves; i++) {
@@ -361,6 +361,8 @@ AnimSystem::Sample(int clipIndex, int64_t time, AnimSampleMode::Code sampleMode,
                 const uint8_t* src1Ptr = keyPtr + curve.KeyOffset + keyIndex1 * curve.KeyStride;
                 unpack(curve.Format, src0Ptr, sample0);
                 unpack(curve.Format, src1Ptr, sample1);
+                sample0 = &(unpackBuffer[0]);
+                sample1 = &(unpackBuffer[4]);
                 o_assert_dbg(src0Ptr < keyEndPtr);
                 o_assert_dbg(src1Ptr < keyEndPtr);
                 // FIXME: use simple linear interpolation for quaternions, assumes
@@ -370,17 +372,17 @@ AnimSystem::Sample(int clipIndex, int64_t time, AnimSampleMode::Code sampleMode,
                     case AnimKeyFormat::Float4:
                     case AnimKeyFormat::Byte4N:
                     case AnimKeyFormat::Short4N:
-                        s0 = *sample0++; *dstPtr++ = s0 + (*sample1++ - s0) * weight;
+                        s0 = *sample0++; *dstPtr++ = s0 + (*sample1++ - s0) * t;
                         // fallthrough
                     case AnimKeyFormat::Float3:
-                        s0 = *sample0++; *dstPtr++ = s0 + (*sample1++ - s0) * weight;
+                        s0 = *sample0++; *dstPtr++ = s0 + (*sample1++ - s0) * t;
                         // fallthrough
                     case AnimKeyFormat::Float2:
                     case AnimKeyFormat::Short2N:
-                        s0 = *sample0++; *dstPtr++ = s0 + (*sample1++ - s0) * weight;
+                        s0 = *sample0++; *dstPtr++ = s0 + (*sample1++ - s0) * t;
                         // fallthrough
                     case AnimKeyFormat::Float:
-                        s0 = *sample0++; *dstPtr++ = s0 + (*sample1++ - s0) * weight;
+                        s0 = *sample0++; *dstPtr++ = s0 + (*sample1++ - s0) * t;
                         break;
                     default:
                         // should not happen

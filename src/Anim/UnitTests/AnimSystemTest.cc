@@ -176,8 +176,10 @@ TEST(AnimSystem_AddRemove) {
 
 //------------------------------------------------------------------------------
 TEST(AnimSystem_Sample) {
+    AnimSystemSetup setup;
+    setup.NumSampleBuffers = 3;
     AnimSystem anim;
-    anim.Setup();
+    anim.Setup(setup);
 
     static const int numKeys = 10;
     std::array<float, numKeys> keysFloat;
@@ -248,11 +250,9 @@ TEST(AnimSystem_Sample) {
     lib.ClipNameMap.Add("clip0", 0);
     anim.AddLibrary("lib0", std::move(lib));
 
-    anim.Sample(0, 0, AnimSampleMode::Step, AnimWrapMode::Clamp, 0);
-    anim.Sample(0, keyDuration * 1, AnimSampleMode::Step, AnimWrapMode::Clamp, 1);
 
+    anim.Sample(0, 0, AnimSampleMode::Step, AnimWrapMode::Clamp, 0);
     const float* smp0 = anim.SampleBuffer(0);
-    const float* smp1 = anim.SampleBuffer(1);
     // curve 0 (Float)
     CHECK_CLOSE(1.0f, smp0[0], 0.00001f);
     // curve 1 (Float2)
@@ -280,4 +280,64 @@ TEST(AnimSystem_Sample) {
     CHECK_CLOSE(0.06f, smp0[17], (1.0f / 32767.0f));
     CHECK_CLOSE(0.07f, smp0[18], (1.0f / 32767.0f));
     CHECK_CLOSE(0.08f, smp0[19], (1.0f / 32767.0f));
+
+    anim.Sample(0, keyDuration * 1, AnimSampleMode::Step, AnimWrapMode::Clamp, 1);
+    const float* smp1 = anim.SampleBuffer(1);
+    // curve 0 (Float)
+    CHECK_CLOSE(2.0f, smp1[0], 0.00001f);
+    // curve 1 (Float2)
+    CHECK_CLOSE(4.0f, smp1[1], 0.00001f);
+    CHECK_CLOSE(6.0f, smp1[2], 0.00001f);
+    // curve 2 (Float3)
+    CHECK_CLOSE(8.0f, smp1[3], 0.00001f);
+    CHECK_CLOSE(10.0f, smp1[4], 0.00001f);
+    CHECK_CLOSE(12.0f, smp1[5], 0.00001f);
+    // curve 3 (Float4)
+    CHECK_CLOSE(14.0f, smp1[6], 0.00001f);
+    CHECK_CLOSE(16.0f, smp1[7], 0.00001f);
+    CHECK_CLOSE(18.0f, smp1[8], 0.00001f);
+    CHECK_CLOSE(20.0f, smp1[9], 0.00001f);
+    // curve 4 (Byte4N)
+    CHECK_CLOSE(0.10f, smp1[10], (1.0f / 127.0f));
+    CHECK_CLOSE(0.12f, smp1[11], (1.0f / 127.0f));
+    CHECK_CLOSE(0.14f, smp1[12], (1.0f / 127.0f));
+    CHECK_CLOSE(0.16f, smp1[13], (1.0f / 127.0f));
+    // curve 5 (Short2N)
+    CHECK_CLOSE(0.10f, smp1[14], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.12f, smp1[15], (1.0f / 32767.0f));
+    // curve 5 (Short4N)
+    CHECK_CLOSE(0.10f, smp1[16], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.12f, smp1[17], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.14f, smp1[18], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.16f, smp1[19], (1.0f / 32767.0f));
+
+    anim.Sample(0, keyDuration/2, AnimSampleMode::Linear, AnimWrapMode::Clamp, 2);
+    const float* smp2 = anim.SampleBuffer(2);
+    // curve 0 (Float)
+    CHECK_CLOSE(1.5f, smp2[0], 0.00001f);
+    // curve 1 (Float2)
+    CHECK_CLOSE(3.0f, smp2[1], 0.00001f);
+    CHECK_CLOSE(4.5f, smp2[2], 0.00001f);
+    // curve 2 (Float3)
+    CHECK_CLOSE(6.0f, smp2[3], 0.00001f);
+    CHECK_CLOSE(7.5f, smp2[4], 0.00001f);
+    CHECK_CLOSE(9.0f, smp2[5], 0.00001f);
+    // curve 3 (Float4)
+    CHECK_CLOSE(10.5f, smp2[6], 0.00001f);
+    CHECK_CLOSE(12.0f, smp2[7], 0.00001f);
+    CHECK_CLOSE(13.5f, smp2[8], 0.00001f);
+    CHECK_CLOSE(15.0f, smp2[9], 0.00001f);
+    // curve 4 (Byte4N)
+    CHECK_CLOSE(0.075f, smp2[10], (1.0f / 127.0f));
+    CHECK_CLOSE(0.09f, smp2[11], (1.0f / 127.0f));
+    CHECK_CLOSE(0.105f, smp2[12], (1.0f / 127.0f));
+    CHECK_CLOSE(0.12f, smp2[13], (1.0f / 127.0f));
+    // curve 5 (Short2N)
+    CHECK_CLOSE(0.075f, smp2[14], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.09f, smp2[15], (1.0f / 32767.0f));
+    // curve 5 (Short4N)
+    CHECK_CLOSE(0.075f, smp2[16], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.09f, smp2[17], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.105f, smp2[18], (1.0f / 32767.0f));
+    CHECK_CLOSE(0.12f, smp2[19], (1.0f / 32767.0f));
 }
