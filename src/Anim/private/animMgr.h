@@ -6,6 +6,7 @@
     @brief resource container of the Anim module
 */
 #include "Resource/ResourceContainerBase.h"
+#include "Resource/ResourcePool.h"
 
 namespace Oryol {
 namespace _priv {
@@ -17,16 +18,20 @@ public:
     /// discard the anim mgr
     void discard();
 
-    /// create an anim resource object
-    template<class SETUP> create(const AnimClipSetup& setup, const void* data=nullptr, int size=0);
+    /// create a clip
+    Id createClip(const AnimClipSetup& setup);
+    /// lookup animClip object 
+    animClip* lookupClip(const Id& resId);
     /// immediately destroy anim resources by label
     void destroy(const ResourceLabel& label);
 
-    /// lookup animClip object 
-    animClip* lookupClip(const Id& resId);
-
     ResourceContainerBase resContainer;
-}
+    ResourcePool<AnimClip> clipPool;
+    Array<AnimCurve> curvePool;
+    int maxKeys = 0;        // max number of floats in keypool
+    int numKeys = 0;        // current number of keys in keypool
+    float* keyPool = nullptr;
+};
 
 } // namespace _priv
 } // namespace Oryol

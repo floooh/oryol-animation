@@ -18,29 +18,28 @@ public:
     static void Discard();
     /// check if animation module is setup
     static bool IsValid() const;
-
     /// get the original AnimSetup object
     static const class AnimSetup& AnimSetup();
 
     /// generate new resource label and push on label stack
-    static ResourceLabel PushResourceLabel();
+    static ResourceLabel PushLabel();
     /// push explicit resource label on label stack
-    static void PushResourceLabel(ResourceLabel label);
+    static void PushLabel(ResourceLabel label);
     /// pop resource label from label stack
-    static ResourceLabel PopResourceLabel();
+    static ResourceLabel PopLabel();
 
-    /// create a resource object without associated data
-    template<class SETUP> static Id CreateResource(const SETUP& setup);
-    /// create a resource object with associated data
-    template<class SETUP> static Id CreateResource(const SetupAndData<SETUP>& setupAndData);
-    /// create a resource object with associated data
-    template<class SETUP> static Id CreateResource(const SETUP& setup, const Buffer& data);
-    /// create a resource object with raw pointer to associated data
-    template<class SETUP> static Id CreateResource(const SETUP& setup, const void* data, int size);
-    /// lookup a resource Id by Locator
-    static Id LookupResource(const Locator& locator);
-    /// destroy one or several resources by matching label
-    static void DestroyResources(ResourceLabel label);
+    /// create an anim clip object
+    static Id CreateClip(const AnimClipSetup& clip);
+    /// lookup a clip id by it's name
+    static Id LookupClip(const Locator& name);
+    /// destroy one or several clips by matching resource label
+    static void DestroyClips(ResourceLabel label);
+
+    /// access an AnimClip 
+    static const AnimClip& Clip(Id clip) const;
+    /// access an AnimCurve
+    static const AnimCurve& Curve(Id clip, int curveIndex) const;
+
 };
 
 

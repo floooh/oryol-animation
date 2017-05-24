@@ -2,7 +2,9 @@
 //------------------------------------------------------------------------------
 #include "Core/Types.h"
 #include "Core/String/StringAtom.h"
-#include "Core/Containers/Array.h"
+#include "Core/Containers/StaticArray.h"
+#include "Resource/ResourceBase.h"
+#include <functional>
 
 namespace Oryol {
 
@@ -14,52 +16,12 @@ namespace Oryol {
 */
 class AnimSetup {
 public:
-    /// the global key buffer size, in bytes
-    int KeyBufferSize = 2 * 1024 * 1024;
-};
-
-//------------------------------------------------------------------------------
-/**
-    @class Oryol::AnimKeyFormat
-    @ingroup Anim
-    @brief format of anim keys
-*/
-class AnimKeyFormat {
-public:
-    enum Code {
-        Float,      ///< generic scalar
-        Float2,     ///< genecic 2D vector
-        Float3,     ///< generic 3D vector
-        Float4,     ///< generic 4D vector
-        Quaternion  ///< a rotation key
-
-        InvalidAnimKeyFormat = 0xFFFFFFFF;
-    };
-};
-
-//------------------------------------------------------------------------------
-/**
-    @class Oryol::AnimCurveSetup
-    @ingroup Anim
-    @brief setup parameters for an animation curve (part of AnimClipSetup)
-*/
-class AnimCurveSetup {
-public:
-    /// default constructor
-    AnimCurveSetup();
-    /// construct from values
-    AnimCurveSetup(AnimKeyFormat::Code fmt, bool constant=false, float x=0.0f, float y=0.0f, float z=0.0f, float w=0.0f):
-        Format(fmt),
-        Constant(constant),
-        Value[0](x), Value[1](y), Value[2](z), Value[3](w)
-    { };
-
-    /// format of anim keys in curve
-    AnimKeyFormat::Code Format = AnimKeyFormat::InvalidAnimKeyFormat;
-    /// true if the curve is constant
-    bool Constant = false;
-    /// optional constant- or default-value of curve
-    StaticArray<float, 4> Value;
+    /// max number of anim clips
+    int MaxNumClips = 64;
+    /// max number of anim curves over all clips
+    int MaxNumCurves = MaxNumClips * 256;
+    /// max number of float keys in key pool
+    int MaxNumKeys = MaxNumCurves * 64;     // 64*64*256*sizeof(float) = 4 MByte
 };
 
 //------------------------------------------------------------------------------
@@ -72,10 +34,76 @@ class AnimClipSetup {
 public:
     /// the clip name
     StringAtom Name;
-    /// number of keys in a curve
+    /// overall number of curves in the clip
+    int NumCurves = 0;
+    /// number of keys per curve
     int NumKeys = 0;
-    /// animation curves description
-    Array<AnimCurveSetup> Curves;
+    /// key duration in seconds (all keys in clip must have same duration)
+    float KeyDuration = 1.0f / 25.0f;
+    /// callback to setup an anim curve in clip
+    std::function<void(int curveIndex, AnimCurve& curve)> InitCurve;
 };
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimCurveFormat
+    @ingroup Anim
+    @brief format of anim keys
+*/
+class AnimCurveFormat {
+public:
+    enum Code {
+        Static,     ///< a 'flat' curve, no keys, only a static value
+        Float,      ///< 1 key, linear interpolation
+        Float2,     ///< 2 keys, linear interpolation
+        Float3,     ///< 3 keys, linear interpolation
+        Float4,     ///< 4 keys, linear interpolation
+        Quaternion  ///< 4 keys, spherical interpolation
+
+        Invalid,
+    };
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimCurve
+    @ingroup Anim
+    @brief describes a curve in a clip
+*/
+class AnimCurve {
+public:
+    /// the curve format
+    AnimCurveFormat::Code Format = AnimCurveFormat::Invalid;
+    /// the static value if the curve has no keys
+    StaticArray<float, 4> StaticValue;
+
+    /// internal: index of first key in key pool (rel to clip)
+    int keyIndex = InvalidIndex;
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimClip
+    @ingroup Anim
+    @brief describes an animation clip
+*/
+class AnimClip : public ResourceBase {
+public:
+    /// name of the clip
+    StringAtom Name;
+    /// number of curves in the clip
+    int NumCurves = 0;
+    /// number of keys per curve
+    int NumKeys = 0;
+    /// key duration in seconds (default is 1/25)
+    float KeyDuration = 1.0f / 25.0f;
+
+    /// internal: index of first curve in curve pool
+    int curveIndex = InvalidIndex;
+    /// internal: index of first key in clip pool
+    int keyIndex = InvalidIndex;
+    /// internal: stride between keys of same curve
+    int keyStride = 0;
+}
 
 } // namespace Oryol
