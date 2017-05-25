@@ -7,6 +7,7 @@
 */
 #include "Anim/AnimTypes.h"
 #include "Resource/ResourceLabel.h"
+#include "Resource/Locator.h"
 
 namespace Oryol {
 
@@ -17,7 +18,7 @@ public:
     /// discard the animation module
     static void Discard();
     /// check if animation module is setup
-    static bool IsValid() const;
+    static bool IsValid();
     /// get the original AnimSetup object
     static const class AnimSetup& AnimSetup();
 
@@ -30,15 +31,15 @@ public:
 
     /// create an anim clip object
     static Id CreateClip(const AnimClipSetup& clip);
-    /// lookup a clip id by it's name
-    static Id LookupClip(const Locator& name);
-    /// destroy one or several clips by matching resource label
-    static void DestroyClips(ResourceLabel label);
+    /// lookup an anim resource Id by its name
+    static Id Lookup(const Locator& name);
+    /// destroy one or several anim resources by matching resource label
+    static void Destroy(ResourceLabel label);
 
     /// access an AnimClip 
-    static const AnimClip& Clip(Id clip) const;
+    static const AnimClip& Clip(Id clip);
     /// access an AnimCurve
-    static const AnimCurve& Curve(Id clip, int curveIndex) const;
+    static const AnimCurve& Curve(Id clip, int curveIndex);
 
 };
 
