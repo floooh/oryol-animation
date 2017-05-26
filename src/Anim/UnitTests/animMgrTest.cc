@@ -64,9 +64,24 @@ TEST(animMgr) {
                 break;
         }
     };
-    clipSetup.InitKeys = [](const AnimClip& clip, float* keyPtr, int stride, int rows) {
-        // FIXME
-
+    clipSetup.InitKeys = [&mgr](const AnimClip& clip, const ArrayView<AnimCurve>& curves, ArrayView<float>& keys) {
+        CHECK(clip.Name == "clip1");
+        CHECK(clip.NumCurves == 3);
+        CHECK(clip.NumKeys == 5);
+        CHECK(clip.KeyStride == 5);
+        CHECK(clip.keyIndex == 0);
+        CHECK(clip.numPoolKeys == 25);
+        CHECK(curves.Size() == 3);
+        CHECK(curves[0].Format == AnimCurveFormat::Float3);
+        CHECK(curves[1].Format == AnimCurveFormat::Float2);
+        CHECK(curves[2].Format == AnimCurveFormat::Static);
+        CHECK(&keys[0] == mgr.keyPool);
+        CHECK(keys.Size() == clip.numPoolKeys);
+        for (int y = 0; y < clip.NumKeys; y++) {
+            for (int x = 0; x < clip.KeyStride; x++) {
+                keys[y * clip.KeyStride + x] = float(y);
+            }
+        }
     };
     Id clipId = mgr.createClip(clipSetup);
     CHECK(clipId.IsValid());
@@ -76,7 +91,7 @@ TEST(animMgr) {
     CHECK(clip->NumCurves == 3);
     CHECK(clip->NumKeys == 5);
     CHECK(clip->curveIndex == 0);
-    CHECK(clip->keyStride == 5);
+    CHECK(clip->KeyStride == 5);
     CHECK(clip->keyIndex == 0);
     CHECK(clip->numPoolKeys == 25);
     CHECK(mgr.curvePool.Size() == 3);

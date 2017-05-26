@@ -72,15 +72,15 @@ animMgr::createClip(const AnimClipSetup& setup) {
     clip.curveIndex = this->curvePool.Size();
 
     // initialize the anim curves
-    clip.keyStride = 0;
+    clip.KeyStride = 0;
     for (int curveIndex = 0; curveIndex < clip.NumCurves; curveIndex++) {
         this->curvePool.Add();
         AnimCurve& curve = this->curvePool.Back();
         setup.InitCurve(clip, curveIndex, curve);
         o_assert_dbg(curve.Format != AnimCurveFormat::Invalid);
         if (curve.Format != AnimCurveFormat::Static) {
-            curve.keyIndex = clip.keyStride;
-            clip.keyStride += AnimCurveFormat::Stride(curve.Format);
+            curve.keyIndex = clip.KeyStride;
+            clip.KeyStride += AnimCurveFormat::Stride(curve.Format);
         }
         else {
             curve.keyIndex = InvalidIndex;
@@ -88,7 +88,7 @@ animMgr::createClip(const AnimClipSetup& setup) {
     }
 
     // reserve and initialize keys in key pool
-    const int numKeysInClip = clip.keyStride * clip.NumKeys;
+    const int numKeysInClip = clip.KeyStride * clip.NumKeys;
     if ((this->numKeys + numKeysInClip) >= this->maxKeys) {
         o_warn("Anim: key pool exhausted!");
         this->destroyClip(resId);
@@ -97,7 +97,9 @@ animMgr::createClip(const AnimClipSetup& setup) {
     clip.keyIndex = this->numKeys;
     clip.numPoolKeys = numKeysInClip;
     this->numKeys += numKeysInClip;
-    setup.InitKeys(clip, &(this->keyPool[clip.keyIndex]), clip.keyStride, clip.NumKeys);
+    ArrayView<AnimCurve> curves = this->curvePool.View(clip.curveIndex, clip.NumCurves);
+    ArrayView<float> keys(&this->keyPool[clip.keyIndex], clip.numPoolKeys);
+    setup.InitKeys(clip, curves, keys);
 
     this->resContainer.registry.Add(setup.Name, resId, this->resContainer.PeekLabel());
     this->clipPool.UpdateState(resId, ResourceState::Valid);

@@ -98,7 +98,7 @@ public:
     /// function will be called for each curve to setup AnimCurve struct
     std::function<void(const AnimClip& clip, int curveIndex, AnimCurve& curve)> InitCurve;
     /// function will be called once to fill the clip's key value table
-    std::function<void(const AnimClip& clip, float* keyPtr, int stride, int rows)> InitKeys;
+    std::function<void(const AnimClip& clip, const ArrayView<AnimCurve>& curves, ArrayView<float>& keys)> InitKeys;
 };
 
 //------------------------------------------------------------------------------
@@ -117,11 +117,11 @@ public:
     int NumKeys = 0;
     /// key duration in seconds (default is 1/25)
     float KeyDuration = 1.0f / 25.0f;
+    /// stride in number of floats in key pool
+    int KeyStride = 0;
 
     /// internal: index of first curve in curve pool
     int curveIndex = InvalidIndex;
-    /// internal: stride between keys of same curve
-    int keyStride = 0;
     /// internal: index of first key in clip pool
     int keyIndex = InvalidIndex;
     /// internal: number of keys in key pool
@@ -132,8 +132,8 @@ public:
         NumCurves = 0;
         NumKeys = 0;
         KeyDuration = 1.0f / 25.0f;
+        KeyStride = 0;
         curveIndex = InvalidIndex;
-        keyStride = 0;
         keyIndex = InvalidIndex;
         numPoolKeys = 0;
     };
