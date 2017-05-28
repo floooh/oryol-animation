@@ -17,6 +17,7 @@ TEST(animMgr) {
     setup.MaxNumClips = 16;
     setup.MaxNumCurves = 128;
     setup.MaxNumKeys = 1024;
+    setup.MaxNumSamples = 256;
     setup.ResourceLabelStackCapacity = 16;
     setup.ResourceRegistryCapacity = 24;
     animMgr mgr;
@@ -27,9 +28,11 @@ TEST(animMgr) {
     CHECK(mgr.libPool.IsValid());
     CHECK(mgr.clipPool.Capacity() == 16);
     CHECK(mgr.curvePool.Capacity() == 128);
-    CHECK(mgr.maxKeys == 1024);
+    CHECK(mgr.keys.Size() == 1024);
+    CHECK(mgr.samples.Size() == 256);
     CHECK(mgr.numKeys == 0);
-    CHECK(mgr.keyPool != nullptr);
+    CHECK(mgr.numSamples == 0);
+    CHECK(mgr.valuePool != nullptr);
 
     // create a library with two clips
     const int numCurves = 3;

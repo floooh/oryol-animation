@@ -20,24 +20,27 @@ animMgr::setup(const AnimSetup& setup) {
     this->clipPool.Reserve(setup.MaxNumClips);
     this->curvePool.SetAllocStrategy(0, 0); // disable reallocation
     this->curvePool.Reserve(setup.MaxNumCurves);
-    this->maxKeys = setup.MaxNumKeys;
-    this->numKeys = 0;
-    this->keyPool = (float*) Memory::Alloc(this->maxKeys * sizeof(float));
+    const int numValues = setup.MaxNumKeys + setup.MaxNumSamples;
+    this->valuePool = (float*) Memory::Alloc(numValues * sizeof(float));
+    this->keys = ArrayView<float>(this->valuePool, 0, setup.MaxNumKeys);
+    this->samples = ArrayView<float>(this->valuePool, setup.MaxNumKeys, setup.MaxNumSamples);
 }
 
 //------------------------------------------------------------------------------
 void
 animMgr::discard() {
     o_assert_dbg(this->isValid);
-    o_assert_dbg(this->keyPool);
+    o_assert_dbg(this->valuePool);
 
     this->destroy(ResourceLabel::All);
     this->resContainer.Discard();
     this->libPool.Discard();
     o_assert_dbg(this->clipPool.Empty());
     o_assert_dbg(this->curvePool.Empty());
-    Memory::Free(this->keyPool);
-    this->keyPool = nullptr;
+    this->keys = ArrayView<float>();
+    this->samples = ArrayView<float>();
+    Memory::Free(this->valuePool);
+    this->valuePool = nullptr;
     this->isValid = false;
 }
 
@@ -77,7 +80,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
             }
         }
     }
-    if ((this->numKeys + libNumKeys) >= this->maxKeys) {
+    if ((this->numKeys + libNumKeys) >= this->keys.Size()) {
         o_warn("Anim: key pool exhausted!\n");
         return Id::InvalidId();
     }
@@ -86,6 +89,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     resId = this->libPool.AllocId();
     AnimLibrary& lib = this->libPool.Assign(resId, ResourceState::Setup);
     lib.Name = libSetup.Name;
+    lib.MaxNumInstances = libSetup.MaxNumInstances;
     lib.NumSamples = 0;
     for (const auto& fmt : libSetup.CurveLayout) {
         lib.NumSamples += AnimCurveFormat::Stride(fmt);
@@ -119,11 +123,11 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
         clip.Curves = this->curvePool.View(curveIndex, clipSetup.Curves.Size());
         const int clipNumKeys = clip.KeyStride * clip.Length;
         if (clipNumKeys > 0) {
-            clip.Keys = ArrayView<float>(this->keyPool, keyIndex, clipNumKeys);
+            clip.Keys = this->keys.View(keyIndex, clipNumKeys);
             this->numKeys += clipNumKeys;
         }
     }
-    lib.Keys = ArrayView<float>(this->keyPool, libKeyIndex, this->numKeys-libKeyIndex);
+    lib.Keys = this->keys.View(libKeyIndex, this->numKeys-libKeyIndex);
     lib.Curves = this->curvePool.View(curvePoolIndex, libSetup.Clips.Size() * libSetup.CurveLayout.Size());
     lib.Clips = this->clipPool.View(clipPoolIndex, libSetup.Clips.Size());
 
@@ -183,7 +187,7 @@ animMgr::destroyLibrary(const Id& id) {
 //------------------------------------------------------------------------------
 void
 animMgr::removeKeys(const ArrayView<float>& range) {
-    o_assert_dbg(this->keyPool);
+    o_assert_dbg(this->valuePool);
     if (range.Empty()) {
         return;
     }
@@ -192,7 +196,6 @@ animMgr::removeKeys(const ArrayView<float>& range) {
         Memory::Move(range.end(), (void*)range.begin(), numKeysToMove * sizeof(float)); 
     }
     this->numKeys -= range.Size();
-    o_assert_dbg(this->numKeys >= 0);
 
     // fix the key array views in libs and clips
     const int rangeEnd = range.StartIndex() + range.Size();

@@ -19,13 +19,14 @@ public:
     /// discard the anim mgr
     void discard();
 
+    /// destroy one or more resources by label
+    void destroy(const ResourceLabel& label);
+
     /// create an animation library
     Id createLibrary(const AnimLibrarySetup& setup);
     /// lookup pointer to an animation library
     AnimLibrary* lookupLibrary(const Id& resId);
-    /// destroy one or more libraries by resource label
-    void destroy(const ResourceLabel& label);
-    /// immediately destroy an animation library (and all clips and keys)
+    /// destroy an animation library
     void destroyLibrary(const Id& resId);
 
     /// remove a range of keys from key pool and fixup indices in curves and clips
@@ -36,15 +37,18 @@ public:
     void removeClips(const ArrayView<AnimClip>& clipRange);
 
     static const Id::TypeT resTypeLib = 1;
+    static const Id::TypeT resTypeInstance = 2;
 
     bool isValid = false;
     ResourceContainerBase resContainer;
     ResourcePool<AnimLibrary> libPool;
     Array<AnimClip> clipPool;
     Array<AnimCurve> curvePool;
-    int maxKeys = 0;        // max number of floats in keypool
-    int numKeys = 0;        // current number of keys in keypool
-    float* keyPool = nullptr;
+    int numKeys = 0;
+    int numSamples = 0;
+    ArrayView<float> keys;
+    ArrayView<float> samples;
+    float* valuePool = nullptr;
 };
 
 } // namespace _priv
