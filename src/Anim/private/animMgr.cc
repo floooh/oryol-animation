@@ -15,8 +15,10 @@ animMgr::setup(const AnimSetup& setup) {
 
     this->isValid = true;
     this->resContainer.Setup(setup.ResourceLabelStackCapacity, setup.ResourceRegistryCapacity);
-    this->clipPool.Setup(resTypeClip, setup.MaxNumClips);
-    this->curvePool.SetAllocStrategy(0, 0); // disable growing
+    this->libPool.Setup(resTypeLib, setup.MaxNumLibs);
+    this->clipPool.SetAllocStrategy(0, 0);  // disable reallocation
+    this->clipPool.Reserve(setup.MaxNumClips);
+    this->curvePool.SetAllocStrategy(0, 0); // disable reallocation
     this->curvePool.Reserve(setup.MaxNumCurves);
     this->maxKeys = setup.MaxNumKeys;
     this->numKeys = 0;
@@ -31,8 +33,9 @@ animMgr::discard() {
 
     this->destroy(ResourceLabel::All);
     this->resContainer.Discard();
-    this->clipPool.Discard();
-    this->curvePool.Clear();
+    this->libPool.Discard();
+    o_assert_dbg(this->clipPool.Empty());
+    o_assert_dbg(this->curvePool.Empty());
     Memory::Free(this->keyPool);
     this->keyPool = nullptr;
     this->isValid = false;
@@ -40,78 +43,113 @@ animMgr::discard() {
 
 //------------------------------------------------------------------------------
 Id
-animMgr::createClip(const AnimClipSetup& setup) {
+animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     o_assert_dbg(this->isValid);
-    o_assert_dbg(setup.Name.IsValid());
-    o_assert_dbg(setup.NumCurves > 0);
-    o_assert_dbg(setup.NumKeys > 0);
-    o_assert_dbg(setup.KeyDuration > 0.0f);
-    o_assert_dbg(setup.InitCurve);
-    o_assert_dbg(setup.InitKeys);
+    o_assert_dbg(libSetup.Name.IsValid());
+    o_assert_dbg(!libSetup.CurveLayout.Empty());
+    o_assert_dbg(!libSetup.Clips.Empty());
 
-    // if clip with same name already exists, return the same clip
-    Id resId = this->resContainer.registry.Lookup(setup.Name);
+    // check if lib already exists
+    Id resId = this->resContainer.registry.Lookup(libSetup.Name);
     if (resId.IsValid()) {
-        o_assert_dbg(resId.Type == resTypeClip);
+        o_assert_dbg(resId.Type == resTypeLib);
         return resId;
     }
 
-    // check if there's enough room in the curve pool
-    if ((this->curvePool.Size() + setup.NumCurves) >= this->curvePool.Capacity()) {
+    // before creating new lib, validate setup params and check against limits
+    if ((this->clipPool.Size() + libSetup.Clips.Size()) >= this->clipPool.Capacity()) {
+        o_warn("Anim: clip pool exhausted!\n");
+        return Id::InvalidId();
+    }
+    if ((this->curvePool.Size() + libSetup.CurveLayout.Size()) >= this->curvePool.Capacity()) {
         o_warn("Anim: curve pool exhausted!\n");
         return Id::InvalidId();
     }
-
-    // named clip didn't exist, create one
-    resId = this->clipPool.AllocId();
-    AnimClip& clip = this->clipPool.Assign(resId, ResourceState::Setup);
-    clip.Name = setup.Name;
-    clip.NumCurves = setup.NumCurves;
-    clip.NumKeys = setup.NumKeys;
-    clip.KeyDuration = setup.KeyDuration;
-    clip.curveIndex = this->curvePool.Size();
-
-    // initialize the anim curves
-    clip.KeyStride = 0;
-    for (int curveIndex = 0; curveIndex < clip.NumCurves; curveIndex++) {
-        this->curvePool.Add();
-        AnimCurve& curve = this->curvePool.Back();
-        setup.InitCurve(clip, curveIndex, curve);
-        o_assert_dbg(curve.Format != AnimCurveFormat::Invalid);
-        if (curve.Format != AnimCurveFormat::Static) {
-            curve.keyIndex = clip.KeyStride;
-            clip.KeyStride += AnimCurveFormat::Stride(curve.Format);
+    int libNumKeys = 0;
+    for (const auto& clipSetup : libSetup.Clips) {
+        if (clipSetup.Curves.Size() != libSetup.CurveLayout.Size()) {
+            o_warn("Anim: curve number mismatch in clip '%s'!\n", clipSetup.Name.AsCStr());
+            return Id::InvalidId();
         }
-        else {
-            curve.keyIndex = InvalidIndex;
+        for (int i = 0; i < clipSetup.Curves.Size(); i++) {
+            if (!clipSetup.Curves[i].Static) {
+                libNumKeys += clipSetup.Length * AnimCurveFormat::Stride(libSetup.CurveLayout[i]); 
+            }
         }
     }
-
-    // reserve and initialize keys in key pool
-    const int numKeysInClip = clip.KeyStride * clip.NumKeys;
-    if ((this->numKeys + numKeysInClip) >= this->maxKeys) {
-        o_warn("Anim: key pool exhausted!");
-        this->destroyClip(resId);
+    if ((this->numKeys + libNumKeys) >= this->maxKeys) {
+        o_warn("Anim: key pool exhausted!\n");
         return Id::InvalidId();
     }
-    clip.keyIndex = this->numKeys;
-    clip.numPoolKeys = numKeysInClip;
-    this->numKeys += numKeysInClip;
-    ArrayView<AnimCurve> curves = this->curvePool.View(clip.curveIndex, clip.NumCurves);
-    ArrayView<float> keys(&this->keyPool[clip.keyIndex], clip.numPoolKeys);
-    setup.InitKeys(clip, curves, keys);
 
-    this->resContainer.registry.Add(setup.Name, resId, this->resContainer.PeekLabel());
-    this->clipPool.UpdateState(resId, ResourceState::Valid);
+    // create a new lib
+    resId = this->libPool.AllocId();
+    AnimLibrary& lib = this->libPool.Assign(resId, ResourceState::Setup);
+    lib.Name = libSetup.Name;
+    lib.NumSamples = 0;
+    for (const auto& fmt : libSetup.CurveLayout) {
+        lib.NumSamples += AnimCurveFormat::Stride(fmt);
+    } 
+    lib.ClipIndexMap.Reserve(libSetup.Clips.Size());
+    const int curvePoolIndex = this->curvePool.Size();
+    const int clipPoolIndex = this->clipPool.Size();
+    const int libKeyIndex = this->numKeys;
+    for (const auto& clipSetup : libSetup.Clips) {
+        lib.ClipIndexMap.Add(clipSetup.Name, this->clipPool.Size());
+        this->clipPool.Add();
+        AnimClip& clip = this->clipPool.Back();
+        clip.Name = clipSetup.Name;
+        clip.Length = clipSetup.Length;
+        clip.KeyDuration = clipSetup.KeyDuration;
+        const int curveIndex = this->curvePool.Size();
+        const int keyIndex = this->numKeys;
+        for (int curveIndex = 0; curveIndex < clipSetup.Curves.Size(); curveIndex++) {
+            const auto& curveSetup = clipSetup.Curves[curveIndex];
+            this->curvePool.Add();
+            AnimCurve& curve = this->curvePool.Back();
+            curve.Static = curveSetup.Static;
+            curve.Format = libSetup.CurveLayout[curveIndex];
+            curve.StaticValue = curveSetup.StaticValue;
+            if (!curve.Static) {
+                curve.KeyIndex = clip.KeyStride;
+                curve.Stride = AnimCurveFormat::Stride(curve.Format);
+                clip.KeyStride += curve.Stride; 
+            }
+        }
+        clip.Curves = this->curvePool.View(curveIndex, clipSetup.Curves.Size());
+        const int clipNumKeys = clip.KeyStride * clip.Length;
+        if (clipNumKeys > 0) {
+            clip.Keys = ArrayView<float>(this->keyPool, keyIndex, clipNumKeys);
+            this->numKeys += clipNumKeys;
+        }
+    }
+    lib.Keys = ArrayView<float>(this->keyPool, libKeyIndex, this->numKeys-libKeyIndex);
+    lib.Curves = this->curvePool.View(curvePoolIndex, libSetup.Clips.Size() * libSetup.CurveLayout.Size());
+    lib.Clips = this->clipPool.View(clipPoolIndex, libSetup.Clips.Size());
+
+    // initialize clips with their default values
+    for (auto& clip : lib.Clips) {
+        for (int row = 0; row < clip.Length; row++) {
+            int offset = row * clip.KeyStride;
+            for (const auto& curve : clip.Curves) {
+                for (int i = 0; i < curve.Stride; i++) {
+                    clip.Keys[offset++] = curve.StaticValue[i];
+                }
+            }
+        }
+    }
+
+    this->resContainer.registry.Add(libSetup.Name, resId, this->resContainer.PeekLabel());
+    this->libPool.UpdateState(resId, ResourceState::Valid);
     return resId;
 }
 
 //------------------------------------------------------------------------------
-AnimClip*
-animMgr::lookupClip(const Id& resId) {
+AnimLibrary*
+animMgr::lookupLibrary(const Id& resId) {
     o_assert_dbg(this->isValid);
-    o_assert_dbg(resId.Type == resTypeClip);
-    return this->clipPool.Lookup(resId);
+    o_assert_dbg(resId.Type == resTypeLib);
+    return this->libPool.Lookup(resId);
 }
 
 //------------------------------------------------------------------------------
@@ -121,8 +159,8 @@ animMgr::destroy(const ResourceLabel& label) {
     Array<Id> ids = this->resContainer.registry.Remove(label);
     for (const Id& id : ids) {
         switch (id.Type) {
-            case resTypeClip:
-                this->destroyClip(id);
+            case resTypeLib:
+                this->destroyLibrary(id);
                 break;
             // FIXME: more types?
         }
@@ -131,59 +169,77 @@ animMgr::destroy(const ResourceLabel& label) {
 
 //------------------------------------------------------------------------------
 void
-animMgr::destroyClip(const Id& id) {
-    AnimClip* clip = this->clipPool.Lookup(id);
-    if (clip) {
-        if ((clip->keyIndex != InvalidIndex) && (clip->numPoolKeys > 0)) {
-            this->removeKeys(clip->keyIndex, clip->numPoolKeys);
-        }
-        if ((clip->curveIndex != InvalidIndex) && (clip->NumCurves > 0)) {
-            this->removeCurves(clip->curveIndex, clip->NumCurves);
-        }
-        clip->clear();
+animMgr::destroyLibrary(const Id& id) {
+    AnimLibrary* lib = this->libPool.Lookup(id);
+    if (lib) {
+        this->removeClips(lib->Clips);
+        this->removeCurves(lib->Curves);
+        this->removeKeys(lib->Keys);
+        lib->clear();
     }
-    this->clipPool.Unassign(id);
+    this->libPool.Unassign(id);
 }
 
 //------------------------------------------------------------------------------
 void
-animMgr::removeKeys(int keyIndex, int numKeys) {
+animMgr::removeKeys(const ArrayView<float>& range) {
     o_assert_dbg(this->keyPool);
-    o_assert_dbg((keyIndex >= 0) && ((keyIndex + numKeys) <= this->numKeys));;
-
-    const float* moveFrom = this->keyPool + keyIndex + numKeys;
-    float* moveTo = this->keyPool + keyIndex;
-    const int numKeysToMove = this->numKeys - (keyIndex + numKeys);
-    if (numKeysToMove > 0) {
-        Memory::Move(moveFrom, moveTo, numKeysToMove * sizeof(float)); 
+    if (range.Empty()) {
+        return;
     }
+    const int numKeysToMove = this->numKeys - (range.StartIndex() + range.Size());
+    if (numKeysToMove > 0) {
+        Memory::Move(range.end(), (void*)range.begin(), numKeysToMove * sizeof(float)); 
+    }
+    this->numKeys -= range.Size();
+    o_assert_dbg(this->numKeys >= 0);
 
-    // fix up the anim clip start key indices
-    for (Id::SlotIndexT slotIndex = 0; slotIndex <= this->clipPool.LastAllocSlot; slotIndex++) {
-        AnimClip& clip = this->clipPool.slots[slotIndex];
-        if (clip.Id.IsValid() && (InvalidIndex != clip.keyIndex)) {
-            if (clip.keyIndex > keyIndex) {
-                clip.keyIndex -= numKeys;
-                o_assert_dbg(clip.keyIndex >= 0);
-            }
+    // fix the key array views in libs and clips
+    const int rangeEnd = range.StartIndex() + range.Size();
+    for (Id::SlotIndexT slotIndex = 0; slotIndex <= this->libPool.LastAllocSlot; slotIndex++) {
+        AnimLibrary& lib = this->libPool.slots[slotIndex];
+        if (lib.Id.IsValid() && (lib.Keys.StartIndex() >= rangeEnd)) {
+            lib.Keys.SetStartIndex(lib.Keys.StartIndex() - range.Size());
+        }
+    }
+    for (auto& clip : this->clipPool) {
+        if (clip.Keys.StartIndex() >= rangeEnd) {
+            clip.Keys.SetStartIndex(clip.Keys.StartIndex() - range.Size());
         }
     }
 }
 
 //------------------------------------------------------------------------------
 void
-animMgr::removeCurves(int curveIndex, int numCurves) {
-    o_assert_dbg((curveIndex >= 0) && ((curveIndex + numCurves) <= this->curvePool.Size()));
-    this->curvePool.EraseRange(curveIndex, numCurves); 
+animMgr::removeCurves(const ArrayView<AnimCurve>& range) {
+    this->curvePool.EraseRange(range.StartIndex(), range.Size()); 
 
-    // fix up the anim clip curve indices
-    for (Id::SlotIndexT slotIndex = 0; slotIndex < this->clipPool.LastAllocSlot; slotIndex++) {
-        AnimClip& clip = this->clipPool.slots[slotIndex];
-        if (clip.Id.IsValid() && (InvalidIndex != clip.curveIndex)) {
-            if (clip.curveIndex > curveIndex) {
-                clip.curveIndex -= numCurves;
-                o_assert_dbg(clip.curveIndex >= 0);
-            }
+    // fix the curve array views in libs and clips
+    const int rangeEnd = range.StartIndex() + range.Size();
+    for (Id::SlotIndexT slotIndex = 0; slotIndex <= this->libPool.LastAllocSlot; slotIndex++) {
+        AnimLibrary& lib = this->libPool.slots[slotIndex];
+        if (lib.Id.IsValid() && (lib.Curves.StartIndex() >= rangeEnd)) {
+            lib.Curves.SetStartIndex(lib.Curves.StartIndex() - range.Size());
+        }
+    }
+    for (auto& clip : this->clipPool) {
+        if (clip.Curves.StartIndex() >= rangeEnd) {
+            clip.Curves.SetStartIndex(clip.Curves.StartIndex() - range.Size());
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+animMgr::removeClips(const ArrayView<AnimClip>& range) {
+    this->clipPool.EraseRange(range.StartIndex(), range.Size());
+
+    // fix the clip array views in libs
+    const int rangeEnd = range.StartIndex() + range.Size();
+    for (Id::SlotIndexT slotIndex = 0; slotIndex <= this->libPool.LastAllocSlot; slotIndex++) {
+        AnimLibrary& lib = this->libPool.slots[slotIndex];
+        if (lib.Id.IsValid() && (lib.Clips.StartIndex() >= rangeEnd)) {
+            lib.Clips.SetStartIndex(lib.Clips.StartIndex() - range.Size());
         }
     }
 }

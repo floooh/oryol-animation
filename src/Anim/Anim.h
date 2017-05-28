@@ -20,7 +20,7 @@ public:
     /// check if animation module is setup
     static bool IsValid();
     /// get the original AnimSetup object
-    static const class AnimSetup& AnimSetup();
+    static const struct AnimSetup& AnimSetup();
 
     /// generate new resource label and push on label stack
     static ResourceLabel PushLabel();
@@ -29,21 +29,18 @@ public:
     /// pop resource label from label stack
     static ResourceLabel PopLabel();
 
-    /// create an anim clip object
-    static Id CreateClip(const AnimClipSetup& clip);
-    /// lookup an anim resource Id by its name
+    /// create an anim resource object
+    template<class SETUP> static Id Create(const SETUP& setup);
+    /// lookup an resource id by name 
     static Id Lookup(const Locator& name);
-    /// destroy one or several anim resources by matching resource label
+    /// destroy one or several anim resources by label
     static void Destroy(ResourceLabel label);
 
-    /// access an AnimClip 
-    static const AnimClip& Clip(Id clip);
-    /// access an AnimCurve
-    static const AnimCurve& Curve(Id clip, int curveIndex);
-
+    /// access an animation library
+    static const AnimLibrary& Library(Id id);
+    /// lookup a clip index by name
+    static int ClipIndex(Id libId, const StringAtom& clipName);
 };
-
-
 
 } // namespace Oryol
 

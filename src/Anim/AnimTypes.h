@@ -2,9 +2,10 @@
 //------------------------------------------------------------------------------
 #include "Core/Types.h"
 #include "Core/String/StringAtom.h"
+#include "Core/Containers/ArrayView.h"
 #include "Core/Containers/StaticArray.h"
+#include "Core/Containers/Map.h"
 #include "Resource/ResourceBase.h"
-#include <functional>
 
 namespace Oryol {
 
@@ -14,14 +15,15 @@ namespace Oryol {
     @ingroup Anim
     @brief setup parameters for Anim module
 */
-class AnimSetup {
-public:
-    /// max number of anim clips
-    int MaxNumClips = 64;
-    /// max number of anim curves over all clips
+struct AnimSetup {
+    /// max number of anim libraries
+    int MaxNumLibs = 16;
+    /// max overall number of anim clips
+    int MaxNumClips = MaxNumLibs * 64;
+    /// max overall number of anim curves
     int MaxNumCurves = MaxNumClips * 256;
     /// max number of float keys in key pool
-    int MaxNumKeys = MaxNumCurves * 64;     // 64*64*256*sizeof(float) = 4 MByte
+    int MaxNumKeys = 4 * 1024 * 1024; 
     /// initial resource label stack capacity
     int ResourceLabelStackCapacity = 256;
     /// initial resource registry capacity
@@ -34,23 +36,19 @@ public:
     @ingroup Anim
     @brief format of anim keys
 */
-class AnimCurveFormat {
-public:
+struct AnimCurveFormat {
     enum Enum {
-        Static,     ///< a 'flat' curve, no keys, only a static value
         Float,      ///< 1 key, linear interpolation
         Float2,     ///< 2 keys, linear interpolation
         Float3,     ///< 3 keys, linear interpolation
         Float4,     ///< 4 keys, linear interpolation
         Quaternion, ///< 4 keys, spherical interpolation
-
         Invalid,
     };
 
     /// return number of floats for a format
     static int Stride(AnimCurveFormat::Enum fmt) {
         switch (fmt) {
-            case Static:        return 0;
             case Float:         return 1;
             case Float2:        return 2;
             case Float3:        return 3;
@@ -63,79 +61,134 @@ public:
 
 //------------------------------------------------------------------------------
 /**
-    @class Oryol::AnimCurve
+    @class Oryol::AnimCurveSetup
     @ingroup Anim
-    @brief describes a curve in a clip
+    @brief describe a single anim curve in an anim clip
 */
-class AnimCurve {
-public:
-    /// the curve format
-    AnimCurveFormat::Enum Format = AnimCurveFormat::Invalid;
-    /// the static value if the curve has no keys
+struct AnimCurveSetup {
+    /// true if the curve is actually a single value
+    bool Static = false;
+    /// the default value of the curve
     StaticArray<float, 4> StaticValue;
-
-    /// internal: index of first key in key pool (rel to clip)
-    int keyIndex = InvalidIndex;
+    
+    /// default constructor
+    AnimCurveSetup() { };
+    /// construct from values
+    AnimCurveSetup(bool isStatic, float x=0.0f, float y=0.0f, float z=0.0f, float w=0.0f) {
+        Static = isStatic;
+        StaticValue[0] = x; StaticValue[1] = y; StaticValue[2] = z; StaticValue[3] = w;
+    };
 };
 
 //------------------------------------------------------------------------------
 /**
     @class Oryol::AnimClipSetup
     @ingroup Anim
-    @brief setup parameters for animation clips
+    @brief describe an animation clip, part of AnimLibSetup
 */
-class AnimClip;
-class AnimClipSetup {
-public:
-    /// the clip name
+struct AnimClipSetup {
+    /// name of the anim clip (must be unique in library)
     StringAtom Name;
-    /// overall number of curves in the clip
-    int NumCurves = 0;
-    /// number of keys per curve
-    int NumKeys = 0;
-    /// key duration in seconds (all keys in clip must have same duration)
+    /// the length of the clip in number of keys
+    int Length = 0;
+    /// the time duration from one key to next in seconds
     float KeyDuration = 1.0f / 25.0f;
-    /// function will be called for each curve to setup AnimCurve struct
-    std::function<void(const AnimClip& clip, int curveIndex, AnimCurve& curve)> InitCurve;
-    /// function will be called once to fill the clip's key value table
-    std::function<void(const AnimClip& clip, const ArrayView<AnimCurve>& curves, ArrayView<float>& keys)> InitKeys;
+    /// a description of each curve in the clip
+    ArrayView<AnimCurveSetup> Curves;
+
+    /// default constructor
+    AnimClipSetup() { };
+    /// construct from values
+    AnimClipSetup(const StringAtom& name, int len, float dur, const ArrayView<AnimCurveSetup>& curves):
+        Name(name), Length(len), KeyDuration(dur), Curves(curves) { };
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimLibrarySetup
+    @ingroup Anim
+    @brief describe an animation library
+
+    An animation library is a collection of compatible clips (clip 
+    with the same anim curve layout).
+*/
+struct AnimLibrarySetup {
+    /// the name of the anim library
+    StringAtom Name;
+    /// number and format of curves (must be identical for all clips)
+    ArrayView<AnimCurveFormat::Enum> CurveLayout;
+    /// the anim clips in the library
+    ArrayView<AnimClipSetup> Clips;
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimCurve
+    @ingroup Anim
+    @brief an animation curve (part of a clip) 
+*/
+struct AnimCurve {
+    /// the curve format
+    AnimCurveFormat::Enum Format = AnimCurveFormat::Invalid;
+    /// stride in float (according to format)
+    int Stride = 0;
+    /// is the curve static? (no actual keys in key pool)
+    bool Static = false;
+    /// the static value if the curve has no keys
+    StaticArray<float, 4> StaticValue;
+    /// index of the first key in key pool (relative to clip)
+    int KeyIndex = InvalidIndex;
 };
 
 //------------------------------------------------------------------------------
 /**
     @class Oryol::AnimClip
     @ingroup Anim
-    @brief describes an animation clip
+    @brief an animation clip (part of a library)
 */
-class AnimClip : public ResourceBase {
-public:
+struct AnimClip {
     /// name of the clip
     StringAtom Name;
-    /// number of curves in the clip
-    int NumCurves = 0;
-    /// number of keys per curve
-    int NumKeys = 0;
-    /// key duration in seconds (default is 1/25)
+    /// the length of the clip in number of keys
+    int Length = 0;
+    /// the time duration from one key to next
     float KeyDuration = 1.0f / 25.0f;
-    /// stride in number of floats in key pool
+    /// the stride in floats from one key of a curve to next in key pool
     int KeyStride = 0;
+    /// access to the clip's curves
+    ArrayView<AnimCurve> Curves;
+    /// access to the clip's 2D key table
+    ArrayView<float> Keys;
+};
 
-    /// internal: index of first curve in curve pool
-    int curveIndex = InvalidIndex;
-    /// internal: index of first key in clip pool
-    int keyIndex = InvalidIndex;
-    /// internal: number of keys in key pool
-    int numPoolKeys = 0;
-    /// internal: reset to initial state
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimLibrary
+    @ingroup Anim
+    @brief a collection of clips with the same curve layout
+*/
+struct AnimLibrary : public ResourceBase {
+    /// name of the library
+    StringAtom Name;
+    /// the number of float samples resulting from sampling clips in this library
+    int NumSamples = 0;
+    /// access to all clips in the library
+    ArrayView<AnimClip> Clips;
+    /// array view over all curves of all clips
+    ArrayView<AnimCurve> Curves;
+    /// array view over all keys of all clips
+    ArrayView<float> Keys;
+    /// map clip names to clip indices
+    Map<StringAtom, int> ClipIndexMap;
+
+    /// clear the object
     void clear() {
         Name.Clear();
-        NumCurves = 0;
-        NumKeys = 0;
-        KeyDuration = 1.0f / 25.0f;
-        KeyStride = 0;
-        curveIndex = InvalidIndex;
-        keyIndex = InvalidIndex;
-        numPoolKeys = 0;
+        NumSamples = 0;
+        Clips = ArrayView<AnimClip>();
+        Curves = ArrayView<AnimCurve>();
+        Keys = ArrayView<float>();
+        ClipIndexMap.Clear();
     };
 };
 

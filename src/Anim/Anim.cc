@@ -10,7 +10,7 @@ namespace Oryol {
 
 namespace {
     struct _state {
-        class AnimSetup animSetup;
+        struct AnimSetup animSetup;
         _priv::animMgr mgr;    
     };
     _state* state = nullptr;
@@ -18,7 +18,7 @@ namespace {
 
 //------------------------------------------------------------------------------
 void
-Anim::Setup(const class AnimSetup& setup) {
+Anim::Setup(const struct AnimSetup& setup) {
     o_assert_dbg(!IsValid());
     state = Memory::New<_state>();
     state->animSetup = setup;
@@ -62,10 +62,10 @@ Anim::PopLabel() {
 }
 
 //------------------------------------------------------------------------------
-Id
-Anim::CreateClip(const AnimClipSetup& setup) {
+template<> Id
+Anim::Create(const AnimLibrarySetup& setup) {
     o_assert_dbg(IsValid());
-    return state->mgr.createClip(setup);
+    return state->mgr.createLibrary(setup);
 }
 
 //------------------------------------------------------------------------------

@@ -19,25 +19,28 @@ public:
     /// discard the anim mgr
     void discard();
 
-    /// create a clip
-    Id createClip(const AnimClipSetup& setup);
-    /// lookup an pointer to animClip object 
-    AnimClip* lookupClip(const Id& resId);
-    /// immediately destroy anim resources by label
+    /// create an animation library
+    Id createLibrary(const AnimLibrarySetup& setup);
+    /// lookup pointer to an animation library
+    AnimLibrary* lookupLibrary(const Id& resId);
+    /// destroy one or more libraries by resource label
     void destroy(const ResourceLabel& label);
-    /// destroy an anim clip (called by generic destroy function)
-    void destroyClip(const Id& resId);
+    /// immediately destroy an animation library (and all clips and keys)
+    void destroyLibrary(const Id& resId);
 
     /// remove a range of keys from key pool and fixup indices in curves and clips
-    void removeKeys(int keyIndex, int numKeys);
+    void removeKeys(const ArrayView<float>& keyRange);
     /// remove a range of curves from curve pool, and fixup clips
-    void removeCurves(int curveIndex, int numCurves);
+    void removeCurves(const ArrayView<AnimCurve>& curveRange);
+    /// remove a range of clips from clip pool, and fixup libraries
+    void removeClips(const ArrayView<AnimClip>& clipRange);
 
-    static const Id::TypeT resTypeClip = 1;
+    static const Id::TypeT resTypeLib = 1;
 
     bool isValid = false;
     ResourceContainerBase resContainer;
-    ResourcePool<AnimClip> clipPool;
+    ResourcePool<AnimLibrary> libPool;
+    Array<AnimClip> clipPool;
     Array<AnimCurve> curvePool;
     int maxKeys = 0;        // max number of floats in keypool
     int numKeys = 0;        // current number of keys in keypool
