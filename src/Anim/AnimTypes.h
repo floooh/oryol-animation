@@ -178,21 +178,23 @@ struct AnimLibrary : public ResourceBase {
     StringAtom Name;
     /// max number of animation instances
     int MaxNumInstances = 0;
-    /// the number of float samples resulting from sampling clips in this library
-    int NumSamples = 0;
+    /// stride of per-instance samples samples in number of floats
+    int SampleStride = 0;
     /// access to all clips in the library
     ArrayView<AnimClip> Clips;
     /// array view over all curves of all clips
     ArrayView<AnimCurve> Curves;
     /// array view over all keys of all clips
     ArrayView<float> Keys;
+    /// array view over all result samples
+    ArrayView<float> Samples;
     /// map clip names to clip indices
     Map<StringAtom, int> ClipIndexMap;
 
     /// clear the object
     void clear() {
         Name.Clear();
-        NumSamples = 0;
+        SampleStride = 0;
         Clips = ArrayView<AnimClip>();
         Curves = ArrayView<AnimCurve>();
         Keys = ArrayView<float>();

@@ -30,11 +30,13 @@ public:
     void destroyLibrary(const Id& resId);
 
     /// remove a range of keys from key pool and fixup indices in curves and clips
-    void removeKeys(const ArrayView<float>& keyRange);
+    void removeKeys(ArrayView<float> keyRange);
+    /// remove a range of samples from sample pool, and fixup libs
+    void removeSamples(ArrayView<float> sampleRange);
     /// remove a range of curves from curve pool, and fixup clips
-    void removeCurves(const ArrayView<AnimCurve>& curveRange);
+    void removeCurves(ArrayView<AnimCurve> curveRange);
     /// remove a range of clips from clip pool, and fixup libraries
-    void removeClips(const ArrayView<AnimClip>& clipRange);
+    void removeClips(ArrayView<AnimClip> clipRange);
 
     static const Id::TypeT resTypeLib = 1;
     static const Id::TypeT resTypeInstance = 2;
