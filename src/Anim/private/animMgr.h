@@ -37,11 +37,11 @@ public:
     void destroyInstance(const Id& resId);
 
     /// remove a range of keys from key pool and fixup indices in curves and clips
-    void removeKeys(ArrayView<float> keyRange);
+    void removeKeys(Slice<float> keyRange);
     /// remove a range of curves from curve pool, and fixup clips
-    void removeCurves(ArrayView<AnimCurve> curveRange);
+    void removeCurves(Slice<AnimCurve> curveRange);
     /// remove a range of clips from clip pool, and fixup libraries
-    void removeClips(ArrayView<AnimClip> clipRange);
+    void removeClips(Slice<AnimClip> clipRange);
 
     static const Id::TypeT resTypeLib = 1;
     static const Id::TypeT resTypeInstance = 2;
@@ -52,7 +52,7 @@ public:
     Array<AnimClip> clipPool;
     Array<AnimCurve> curvePool;
     int numKeys = 0;
-    ArrayView<float> keys;
+    Slice<float> keys;
     float* valuePool = nullptr;
 };
 

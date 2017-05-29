@@ -28,36 +28,34 @@ TEST(animMgr) {
     CHECK(mgr.clipPool.Capacity() == 16);
     CHECK(mgr.curvePool.Capacity() == 128);
     CHECK(mgr.keys.Size() == 1024);
-    CHECK(mgr.keys.StartIndex() == 0);
+    CHECK(mgr.keys.Offset() == 0);
     CHECK(mgr.numKeys == 0);
     CHECK(mgr.valuePool != nullptr);
 
     // create a library with two clips
-    const int numCurves = 3;
-    AnimCurveFormat::Enum curveLayout[numCurves] = {
+    Array<AnimCurveFormat::Enum> curveLayout({
         AnimCurveFormat::Float2,
         AnimCurveFormat::Float3,
         AnimCurveFormat::Float4,
-    };
-    AnimCurveSetup clip1Curves[numCurves] = {
+    });
+    Array<AnimCurveSetup> clip1Curves({
         { false, 1.0f, 2.0f, 3.0f, 4.0f },
         { false, 5.0f, 6.0f, 7.0f, 8.0f },
         { true,  9.0f, 10.0f, 11.0f, 12.0f }
-    };
-    AnimCurveSetup clip2Curves[numCurves] = {
+    });
+    Array<AnimCurveSetup> clip2Curves({
         { true, 4.0f, 3.0f, 2.0f, 1.0f },
         { false, 8.0f, 7.0f, 6.0f, 5.0f },
         { true,  12.0f, 11.0f, 10.0f, 9.0f }
-    };
-    static const int numClips = 2;
-    AnimClipSetup clips[numClips] = {
-        { "clip1", 10, 0.04f, ArrayView<AnimCurveSetup>(clip1Curves, 0, numCurves) },
-        { "clip2", 20, 0.04f, ArrayView<AnimCurveSetup>(clip2Curves, 0, numCurves) },
-    };
+    });
+    Array<AnimClipSetup> clips({
+        { "clip1", 10, 0.04f, clip1Curves.MakeSlice() },
+        { "clip2", 20, 0.04f, clip2Curves.MakeSlice() },
+    });
     AnimLibrarySetup libSetup;
     libSetup.Name = "human";
-    libSetup.CurveLayout = ArrayView<AnimCurveFormat::Enum>(curveLayout, 0, numCurves);
-    libSetup.Clips = ArrayView<AnimClipSetup>(clips, 0, numClips);
+    libSetup.CurveLayout = curveLayout.MakeSlice();
+    libSetup.Clips = clips.MakeSlice();
 
     ResourceLabel l1 = mgr.resContainer.PushLabel();
     Id lib1 = mgr.createLibrary(libSetup);
@@ -76,9 +74,9 @@ TEST(animMgr) {
     CHECK(lib1Ptr->Clips[0].Length == 10);
     CHECK(lib1Ptr->Clips[0].KeyStride == 5);
     CHECK(lib1Ptr->Clips[0].Keys.Size() == 50);
-    CHECK(lib1Ptr->Clips[0].Keys.StartIndex() == 0);
+    CHECK(lib1Ptr->Clips[0].Keys.Offset() == 0);
     CHECK(lib1Ptr->Clips[0].Curves.Size() == 3);
-    CHECK(lib1Ptr->Clips[0].Curves.StartIndex() == 0);
+    CHECK(lib1Ptr->Clips[0].Curves.Offset() == 0);
     CHECK(lib1Ptr->Clips[0].Curves[0].Format == AnimCurveFormat::Float2);
     CHECK(lib1Ptr->Clips[0].Curves[0].Stride == 2);
     CHECK(!lib1Ptr->Clips[0].Curves[0].Static);
@@ -107,9 +105,9 @@ TEST(animMgr) {
     CHECK(lib1Ptr->Clips[1].Length == 20);
     CHECK(lib1Ptr->Clips[1].KeyStride == 3);
     CHECK(lib1Ptr->Clips[1].Keys.Size() == 60);
-    CHECK(lib1Ptr->Clips[1].Keys.StartIndex() == 50);
+    CHECK(lib1Ptr->Clips[1].Keys.Offset() == 50);
     CHECK(lib1Ptr->Clips[1].Curves.Size() == 3);
-    CHECK(lib1Ptr->Clips[1].Curves.StartIndex() == 3);
+    CHECK(lib1Ptr->Clips[1].Curves.Offset() == 3);
     CHECK(lib1Ptr->Clips[1].Curves[0].Format == AnimCurveFormat::Float2);
     CHECK(lib1Ptr->Clips[1].Curves[0].Stride == 0);
     CHECK(lib1Ptr->Clips[1].Curves[0].Static);

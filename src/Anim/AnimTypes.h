@@ -2,7 +2,7 @@
 //------------------------------------------------------------------------------
 #include "Core/Types.h"
 #include "Core/String/StringAtom.h"
-#include "Core/Containers/ArrayView.h"
+#include "Core/Containers/Slice.h"
 #include "Core/Containers/StaticArray.h"
 #include "Core/Containers/Map.h"
 #include "Resource/ResourceBase.h"
@@ -96,12 +96,12 @@ struct AnimClipSetup {
     /// the time duration from one key to next in seconds
     float KeyDuration = 1.0f / 25.0f;
     /// a description of each curve in the clip
-    ArrayView<AnimCurveSetup> Curves;
+    Slice<AnimCurveSetup> Curves;
 
     /// default constructor
     AnimClipSetup() { };
     /// construct from values
-    AnimClipSetup(const StringAtom& name, int len, float dur, const ArrayView<AnimCurveSetup>& curves):
+    AnimClipSetup(const StringAtom& name, int len, float dur, const Slice<AnimCurveSetup>& curves):
         Name(name), Length(len), KeyDuration(dur), Curves(curves) { };
 };
 
@@ -118,9 +118,9 @@ struct AnimLibrarySetup {
     /// the name of the anim library
     StringAtom Name;
     /// number and format of curves (must be identical for all clips)
-    ArrayView<AnimCurveFormat::Enum> CurveLayout;
+    Slice<AnimCurveFormat::Enum> CurveLayout;
     /// the anim clips in the library
-    ArrayView<AnimClipSetup> Clips;
+    Slice<AnimClipSetup> Clips;
 };
 
 //------------------------------------------------------------------------------
@@ -158,9 +158,9 @@ struct AnimClip {
     /// the stride in floats from one key of a curve to next in key pool
     int KeyStride = 0;
     /// access to the clip's curves
-    ArrayView<AnimCurve> Curves;
+    Slice<AnimCurve> Curves;
     /// access to the clip's 2D key table
-    ArrayView<float> Keys;
+    Slice<float> Keys;
 };
 
 //------------------------------------------------------------------------------
@@ -175,11 +175,11 @@ struct AnimLibrary : public ResourceBase {
     /// stride of per-instance samples samples in number of floats
     int SampleStride = 0;
     /// access to all clips in the library
-    ArrayView<AnimClip> Clips;
+    Slice<AnimClip> Clips;
     /// array view over all curves of all clips
-    ArrayView<AnimCurve> Curves;
+    Slice<AnimCurve> Curves;
     /// array view over all keys of all clips
-    ArrayView<float> Keys;
+    Slice<float> Keys;
     /// map clip names to clip indices
     Map<StringAtom, int> ClipIndexMap;
 
@@ -187,9 +187,9 @@ struct AnimLibrary : public ResourceBase {
     void clear() {
         Name.Clear();
         SampleStride = 0;
-        Clips = ArrayView<AnimClip>();
-        Curves = ArrayView<AnimCurve>();
-        Keys = ArrayView<float>();
+        Clips = Slice<AnimClip>();
+        Curves = Slice<AnimCurve>();
+        Keys = Slice<float>();
         ClipIndexMap.Clear();
     };
 };
