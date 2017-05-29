@@ -29,10 +29,15 @@ public:
     /// destroy an animation library
     void destroyLibrary(const Id& resId);
 
+    /// create an animation instance
+    Id createInstance(const AnimInstanceSetup& setup);
+    /// lookup pointer to an animation instance
+    AnimInstance* lookupInstance(const Id& resId);
+    /// destroy an animation instance
+    void destroyInstance(const Id& resId);
+
     /// remove a range of keys from key pool and fixup indices in curves and clips
     void removeKeys(ArrayView<float> keyRange);
-    /// remove a range of samples from sample pool, and fixup libs
-    void removeSamples(ArrayView<float> sampleRange);
     /// remove a range of curves from curve pool, and fixup clips
     void removeCurves(ArrayView<AnimCurve> curveRange);
     /// remove a range of clips from clip pool, and fixup libraries
@@ -47,9 +52,7 @@ public:
     Array<AnimClip> clipPool;
     Array<AnimCurve> curvePool;
     int numKeys = 0;
-    int numSamples = 0;
     ArrayView<float> keys;
-    ArrayView<float> samples;
     float* valuePool = nullptr;
 };
 

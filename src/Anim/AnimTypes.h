@@ -26,8 +26,6 @@ struct AnimSetup {
     int MaxNumInstances = MaxNumLibs * 128;
     /// max number of float keys
     int MaxNumKeys = 4 * 1024 * 1024; 
-    /// max number of float samples
-    int MaxNumSamples = 4 * 1024 * 1024;
     /// initial resource label stack capacity
     int ResourceLabelStackCapacity = 256;
     /// initial resource registry capacity
@@ -119,8 +117,6 @@ struct AnimClipSetup {
 struct AnimLibrarySetup {
     /// the name of the anim library
     StringAtom Name;
-    /// max number of anim instances
-    int MaxNumInstances = 64;
     /// number and format of curves (must be identical for all clips)
     ArrayView<AnimCurveFormat::Enum> CurveLayout;
     /// the anim clips in the library
@@ -176,8 +172,6 @@ struct AnimClip {
 struct AnimLibrary : public ResourceBase {
     /// name of the library
     StringAtom Name;
-    /// max number of animation instances
-    int MaxNumInstances = 0;
     /// stride of per-instance samples samples in number of floats
     int SampleStride = 0;
     /// access to all clips in the library
@@ -186,8 +180,6 @@ struct AnimLibrary : public ResourceBase {
     ArrayView<AnimCurve> Curves;
     /// array view over all keys of all clips
     ArrayView<float> Keys;
-    /// array view over all result samples
-    ArrayView<float> Samples;
     /// map clip names to clip indices
     Map<StringAtom, int> ClipIndexMap;
 
@@ -200,6 +192,26 @@ struct AnimLibrary : public ResourceBase {
         Keys = ArrayView<float>();
         ClipIndexMap.Clear();
     };
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimInstanceSetup
+    @ingroup Anim
+    @brief setup params for an animation instance
+*/
+struct AnimInstanceSetup {
+    // FIXME
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimInstance
+    @ingroup Anim
+    @brief an animation instance 
+*/
+struct AnimInstance {
+    // FIXME
 };
 
 } // namespace Oryol

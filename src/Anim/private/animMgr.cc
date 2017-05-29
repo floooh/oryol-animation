@@ -20,10 +20,8 @@ animMgr::setup(const AnimSetup& setup) {
     this->clipPool.Reserve(setup.MaxNumClips);
     this->curvePool.SetAllocStrategy(0, 0); // disable reallocation
     this->curvePool.Reserve(setup.MaxNumCurves);
-    const int numValues = setup.MaxNumKeys + setup.MaxNumSamples;
-    this->valuePool = (float*) Memory::Alloc(numValues * sizeof(float));
+    this->valuePool = (float*) Memory::Alloc(setup.MaxNumKeys * sizeof(float));
     this->keys = ArrayView<float>(this->valuePool, 0, setup.MaxNumKeys);
-    this->samples = ArrayView<float>(this->valuePool, setup.MaxNumKeys, setup.MaxNumSamples);
 }
 
 //------------------------------------------------------------------------------
@@ -38,7 +36,6 @@ animMgr::discard() {
     o_assert_dbg(this->clipPool.Empty());
     o_assert_dbg(this->curvePool.Empty());
     this->keys = ArrayView<float>();
-    this->samples = ArrayView<float>();
     Memory::Free(this->valuePool);
     this->valuePool = nullptr;
     this->isValid = false;
@@ -84,22 +81,15 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
         o_warn("Anim: key pool exhausted!\n");
         return Id::InvalidId();
     }
-    int libSampleStride = 0;
-    for (auto fmt : libSetup.CurveLayout) {
-        libSampleStride += AnimCurveFormat::Stride(fmt);
-    }
-    const int libNumSamples = libSampleStride * libSetup.MaxNumInstances;
-    if ((this->numSamples + libNumSamples) >= this->samples.Size()) {
-        o_warn("Anim: sample pool exhausted!\n");
-        return Id::InvalidId();
-    }
 
     // create a new lib
     resId = this->libPool.AllocId();
     AnimLibrary& lib = this->libPool.Assign(resId, ResourceState::Setup);
     lib.Name = libSetup.Name;
-    lib.MaxNumInstances = libSetup.MaxNumInstances;
-    lib.SampleStride = libSampleStride;
+    lib.SampleStride = 0;
+    for (auto fmt : libSetup.CurveLayout) {
+        lib.SampleStride += AnimCurveFormat::Stride(fmt);
+    }
     lib.ClipIndexMap.Reserve(libSetup.Clips.Size());
     const int curvePoolIndex = this->curvePool.Size();
     const int clipPoolIndex = this->clipPool.Size();
@@ -135,8 +125,6 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     o_assert_dbg(clipKeyIndex == libNumKeys);
     lib.Keys = this->keys.View(this->numKeys, libNumKeys);
     this->numKeys += libNumKeys;
-    lib.Samples = this->samples.View(this->numSamples, libNumSamples);
-    this->numSamples += libNumSamples;
     lib.Curves = this->curvePool.View(curvePoolIndex, libSetup.Clips.Size() * libSetup.CurveLayout.Size());
     lib.Clips = this->clipPool.View(clipPoolIndex, libSetup.Clips.Size());
 
@@ -188,7 +176,6 @@ animMgr::destroyLibrary(const Id& id) {
         this->removeClips(lib->Clips);
         this->removeCurves(lib->Curves);
         this->removeKeys(lib->Keys);
-        this->removeSamples(lib->Samples);
         lib->clear();
     }
     this->libPool.Unassign(id);
@@ -219,30 +206,6 @@ animMgr::removeKeys(ArrayView<float> range) {
     for (auto& clip : this->clipPool) {
         if (clip.Keys.StartIndex() >= rangeEnd) {
             clip.Keys.SetStartIndex(clip.Keys.StartIndex() - range.Size());
-        }
-    }
-}
-
-//------------------------------------------------------------------------------
-void
-animMgr::removeSamples(ArrayView<float> range) {
-    o_assert_dbg(this->valuePool);
-    if (range.Empty()) {
-        return;
-    }
-    const int rangeEnd = range.StartIndex() + range.Size();
-    const int numSamplesToMove = this->numSamples - rangeEnd;
-    if (numSamplesToMove > 0) {
-        Memory::Move(range.end(), (void*)range.begin(), numSamplesToMove * sizeof(float));
-    }
-    this->numSamples -= range.Size();
-    o_assert_dbg(this->numSamples >= 0);
-
-    // fix sample array views in libs
-    for (Id::SlotIndexT slotIndex = 0; slotIndex <= this->libPool.LastAllocSlot; slotIndex++) {
-        AnimLibrary& lib = this->libPool.slots[slotIndex];
-        if (lib.Id.IsValid() && (lib.Samples.StartIndex() >= rangeEnd)) {
-            lib.Samples.SetStartIndex(lib.Samples.StartIndex() - range.Size());
         }
     }
 }

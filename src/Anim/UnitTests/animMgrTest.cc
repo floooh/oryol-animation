@@ -17,7 +17,6 @@ TEST(animMgr) {
     setup.MaxNumClips = 16;
     setup.MaxNumCurves = 128;
     setup.MaxNumKeys = 1024;
-    setup.MaxNumSamples = 512;
     setup.ResourceLabelStackCapacity = 16;
     setup.ResourceRegistryCapacity = 24;
     animMgr mgr;
@@ -30,10 +29,7 @@ TEST(animMgr) {
     CHECK(mgr.curvePool.Capacity() == 128);
     CHECK(mgr.keys.Size() == 1024);
     CHECK(mgr.keys.StartIndex() == 0);
-    CHECK(mgr.samples.Size() == 512);
-    CHECK(mgr.samples.StartIndex() == 1024);
     CHECK(mgr.numKeys == 0);
-    CHECK(mgr.numSamples == 0);
     CHECK(mgr.valuePool != nullptr);
 
     // create a library with two clips
@@ -60,7 +56,6 @@ TEST(animMgr) {
     };
     AnimLibrarySetup libSetup;
     libSetup.Name = "human";
-    libSetup.MaxNumInstances = 16;
     libSetup.CurveLayout = ArrayView<AnimCurveFormat::Enum>(curveLayout, 0, numCurves);
     libSetup.Clips = ArrayView<AnimClipSetup>(clips, 0, numClips);
 
@@ -73,10 +68,8 @@ TEST(animMgr) {
     CHECK(mgr.clipPool.Size() == 2);
     CHECK(mgr.curvePool.Size() == 6);
     CHECK(mgr.numKeys == 110);
-    CHECK(mgr.numSamples == 144);
     const AnimLibrary* lib1Ptr = mgr.lookupLibrary(lib1);
     CHECK(lib1Ptr->Name == "human");
-    CHECK(lib1Ptr->MaxNumInstances == 16);
     CHECK(lib1Ptr->SampleStride == 9);
     CHECK(lib1Ptr->Clips.Size() == 2);
     CHECK(lib1Ptr->Clips[0].Name == "clip1");
@@ -150,18 +143,15 @@ TEST(animMgr) {
     CHECK(mgr.clipPool.Size() == 4);
     CHECK(mgr.curvePool.Size() == 12);
     CHECK(mgr.numKeys == 220);
-    CHECK(mgr.numSamples == 288);
     mgr.destroy(l1);
     CHECK(mgr.libPool.QueryPoolInfo().NumUsedSlots == 1);
     CHECK(mgr.clipPool.Size() == 2);
     CHECK(mgr.curvePool.Size() == 6);
     CHECK(mgr.numKeys == 110);
-    CHECK(mgr.numSamples == 144);
 
     mgr.discard();
     CHECK(!mgr.isValid);
     CHECK(mgr.clipPool.Size() == 0);
     CHECK(mgr.curvePool.Size() == 0);
     CHECK(mgr.numKeys == 0);
-    CHECK(mgr.numSamples == 0);
 }
