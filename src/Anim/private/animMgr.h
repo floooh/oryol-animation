@@ -1,13 +1,14 @@
 #pragma once
 //------------------------------------------------------------------------------
 /**
-    @class Oryol::animMgr
+    @class Oryol::_priv::animMgr
     @ingroup _priv
     @brief resource container of the Anim module
 */
 #include "Resource/ResourceContainerBase.h"
 #include "Resource/ResourcePool.h"
 #include "Anim/AnimTypes.h"
+#include "Anim/private/animInstance.h"
 
 namespace Oryol {
 namespace _priv {
@@ -32,7 +33,7 @@ public:
     /// create an animation instance
     Id createInstance(const AnimInstanceSetup& setup);
     /// lookup pointer to an animation instance
-    AnimInstance* lookupInstance(const Id& resId);
+    animInstance* lookupInstance(const Id& resId);
     /// destroy an animation instance
     void destroyInstance(const Id& resId);
 

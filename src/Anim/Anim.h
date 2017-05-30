@@ -8,6 +8,7 @@
 #include "Anim/AnimTypes.h"
 #include "Resource/ResourceLabel.h"
 #include "Resource/Locator.h"
+#include "Core/Time/Duration.h"
 
 namespace Oryol {
 
@@ -21,6 +22,8 @@ public:
     static bool IsValid();
     /// get the original AnimSetup object
     static const struct AnimSetup& AnimSetup();
+    /// evaluate all active animations
+    static void Update(float frameDurationInSeconds);
 
     /// generate new resource label and push on label stack
     static ResourceLabel PushLabel();
@@ -37,9 +40,21 @@ public:
     static void Destroy(ResourceLabel label);
 
     /// access an animation library
-    static const AnimLibrary& Library(Id id);
+    static const AnimLibrary& Library(const Id& libId);
     /// lookup a clip index by name
-    static int ClipIndex(Id libId, const StringAtom& clipName);
+    static int ClipIndex(const Id& libId, const StringAtom& clipName);
+
+    /// enable an animation instance
+    static void EnableInstance(const Id& instId);
+    /// disable an animation instance (don't evaluate during Update)
+    static void DisableInstance(const Id& instId);
+    /// return true if an animation instance is enabled
+    static bool IsInstanceEnabed(const Id& instId);
+    
+    /// enqueue an animation job, return job id
+    static AnimJob::Id Play(const AnimJob& job);
+    /// stop an animation job
+    static void Stop(AnimJob::Id jobId);
 };
 
 } // namespace Oryol

@@ -8,7 +8,7 @@ fips_begin_module(Anim)
     fips_files(
         animMgr.h animMgr.cc
     )
-    fips_deps(Resource)
+    fips_deps(Core Resource)
 fips_end_module()
 
 fips_begin_unittest(Anim)
