@@ -52,9 +52,13 @@ public:
     static bool IsInstanceEnabed(const Id& instId);
     
     /// enqueue an animation job, return job id
-    static AnimJob::Id Play(const AnimJob& job);
-    /// stop an animation job
-    static void Stop(AnimJob::Id jobId);
+    static AnimJobId Play(const Id& instId, const AnimJob& job);
+    /// stop a specific animation job
+    static void Stop(const Id& instId, AnimJobId jobId, bool allowFadeOut);
+    /// stop all jobs on a mixing track
+    static void StopTrack(const Id& instId, int trackIndex, bool allowFadeOut);
+    /// stop all jobs
+    static void StopAll(const Id& instId, bool allowFadeOut);
 };
 
 } // namespace Oryol

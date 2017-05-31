@@ -16,10 +16,10 @@ class animTracker {
 public:
     /// a track item for evaluating an anim job
     struct item {
-        /// the animation instance id
-        Id instance;
-        /// a 'unique id' for the item
-        AnimJob::Id itemId = AnimJob::InvalidId;
+        /// this item's id
+        AnimJobId id = 0;
+        /// a valid flag, invalid items need to be removed during 'gc'
+        bool valid = true;
         /// the anim clip index
         int clipIndex = InvalidIndex;
         /// the track index (lower number means higher priority)
@@ -42,10 +42,12 @@ public:
     /// room for enqueued items
     StaticArray<item, maxItems> items;
 
-    /// enqueue a new anim job
-    void enqueue(double curTime, uint32_t itemId, const AnimJob& job);
-    /// remove an anim job
-    void remove(const Id& id);
+    /// enqueue a new anim job, return false if queue is full, or job was dropped
+    bool add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration);
+    /// remove invalid and expired items
+    void garbageCollect(double curTime);
+    /// evaluate (sample and mix) the animation into sampleBuffer
+    void eval(double curTime, float* sampleBuffer, int numSamples);
 };
 
 } // namespace _priv

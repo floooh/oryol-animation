@@ -210,34 +210,36 @@ struct AnimInstanceSetup {
 
 //------------------------------------------------------------------------------
 /**
+    @typedef Oryol::AnimJobId
+    @ingroup Anim
+    @brief identifies a playing anim job
+*/
+typedef uint32_t AnimJobId;
+static const AnimJobId InvalidAnimJobId = 0xFFFFFFFF;
+
+//------------------------------------------------------------------------------
+/**
     @class Oryol::AnimJob
     @ingroup Anim
     @brief describe play parameters for an animation
 */
 struct AnimJob {
-    /// the AnimInstance Id the job runs in
-    Id Instance;
     /// index of anim clip to play
     int ClipIndex = InvalidIndex;
     /// the track index for priority blending (lower tracks have higher priority)
     int TrackIndex = 0;
+    /// overall weight when mixing with lower-priority track
+    float MixWeight = 1.0f; 
     /// start time relative to 'now' in seconds
     float StartTime = 0.0f;
     /// playback duration or loop count (<= 0.0f is infinite)
     float Duration = 0.0f;
     /// true if Duration is loop count, false if Duration is seconds
-    bool DurationIsLoopCount = true;
+    bool DurationIsLoopCount = false;
     /// fade-in duration in seconds
     float FadeIn = 0.0f;
     /// fade-out duration in seconds
     float FadeOut = 0.0f;
-    /// overall weight when mixing with lower-priority track
-    float MixWeight = 1.0f; 
-
-    /// a type to identify an active anim job
-    typedef uint32_t Id;
-    /// the invalid AnimJob::Id
-    static const Id InvalidId = 0xFFFFFFFF;
 };
 
 } // namespace Oryol

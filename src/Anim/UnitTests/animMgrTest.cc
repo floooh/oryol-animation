@@ -7,7 +7,7 @@
 #include "Anim/private/animMgr.h"
 
 using namespace Oryol;
-using namespace Oryol::_priv;
+using namespace _priv;
 
 TEST(animMgr) {
 
