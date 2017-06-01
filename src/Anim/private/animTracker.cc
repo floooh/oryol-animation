@@ -11,7 +11,7 @@ namespace _priv {
 //------------------------------------------------------------------------------
 bool
 animTracker::add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration) {
-    if (this->numItems == maxItems) {
+    if (this->items.Full()) {
         // no more free job slots
         return false;
     }
@@ -19,29 +19,28 @@ animTracker::add(double curTime, AnimJobId jobId, const AnimJob& job, float clip
     // find insertion position
     double absStartTime = curTime + job.StartTime;
     int insertIndex;
-    for (insertIndex = 0; insertIndex < this->numItems; insertIndex++) {
+    int numItems = this->items.Size();
+    for (insertIndex = 0; insertIndex < numItems; insertIndex++) {
         const auto& curItem = this->items[insertIndex];
         if (!curItem.valid) {
+            // skip invalid items
             continue;
         }
-        else if (job.TrackIndex < curItem.trackIndex) {
-            break;
+        else if (job.TrackIndex > curItem.trackIndex) {
+            // skip items on smaller track indices
+            continue;
         }
         else if ((job.TrackIndex==curItem.trackIndex) && (absStartTime>curItem.absStartTime)) {
+            // skip items on same track with smaller start time
+            continue;
+        }
+        else {
+            // current item has higher track index, or is on same track 
+            // with higher or equal start time, insert the new job right before 
             break;
         }
     }
-    if (insertIndex < this->numItems) {
-        // make room for the new item 
-        for (int i = this->numItems; i > insertIndex; i--) {
-            this->items[i] = this->items[i-1];
-        }
-    }
-    this->numItems++;
-    o_assert_dbg(this->numItems <= maxItems);
-
-    // insert new anim job item
-    item& newItem = this->items[insertIndex];
+    item newItem;
     newItem.id = jobId;
     newItem.valid = true;
     newItem.clipIndex = job.ClipIndex;
@@ -63,31 +62,31 @@ animTracker::add(double curTime, AnimJobId jobId, const AnimJob& job, float clip
         newItem.absEndTime = DBL_MAX;
         newItem.absFadeOutTime = DBL_MAX;
     }
+    this->items.Insert(insertIndex, newItem);
 
     // fix the start and end times for all jobs on the same
     // track that overlap with the new job, this may lead to
     // some jobs becoming infinitly short, these will no longer
     // take part in mixing, and will eventually be removed
     // when the play cursor passes over them
-    for (int i = 0; i < this->numItems; i++) {
+    numItems = this->items.Size();
+    for (int i = 0; i < numItems; i++) {
         if (i == insertIndex) {
             // this is the item that was just inserted
             continue;
         }
         else {
             auto& curItem = this->items[i];
-            if (newItem.trackIndex == curItem.trackIndex) {
-                // clamp against end of new item
-                if (curItem.absStartTime <= newItem.absFadeOutTime) {
-                    double dur = curItem.absFadeInTime - curItem.absStartTime;
-                    curItem.absStartTime = newItem.absFadeOutTime;
-                    curItem.absFadeInTime = curItem.absStartTime + dur; 
-                }
-                // clamp against start of new item
-                if (curItem.absEndTime >= newItem.absFadeInTime) {
-                    double dur = curItem.absEndTime - curItem.absFadeOutTime;
+            if (curItem.valid && (newItem.trackIndex == curItem.trackIndex)) {
+                // if before the new item, check overlap and trim the end if yes
+                if ((i < insertIndex) && (curItem.absEndTime >= newItem.absFadeInTime)) {
                     curItem.absEndTime = newItem.absFadeInTime;
-                    curItem.absFadeOutTime = curItem.absEndTime - dur; 
+                    curItem.absFadeOutTime = newItem.absStartTime;
+                }
+                // if after the new item, check overlap and trim start if yes
+                if ((i > insertIndex) && (curItem.absStartTime <= newItem.absFadeOutTime)) {
+                    curItem.absStartTime = newItem.absFadeOutTime;
+                    curItem.absFadeInTime = newItem.absEndTime;
                 }
                 // if both sides were clipped, it means the current item
                 // is completely 'obscured' and needs to be removed

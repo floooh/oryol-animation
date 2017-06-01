@@ -7,7 +7,7 @@
 */
 #include "Anim/AnimTypes.h"
 #include "Resource/Id.h"
-#include "Core/Containers/StaticArray.h"
+#include "Core/Containers/InlineArray.h"
 
 namespace Oryol {
 namespace _priv {
@@ -37,10 +37,8 @@ public:
     };
     /// max number of items that can be queued
     static const int maxItems = 16;
-    /// currently enqueued items
-    int numItems = 0;
     /// room for enqueued items
-    StaticArray<item, maxItems> items;
+    InlineArray<item, maxItems> items;
 
     /// enqueue a new anim job, return false if queue is full, or job was dropped
     bool add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration);
