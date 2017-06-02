@@ -42,6 +42,12 @@ public:
 
     /// enqueue a new anim job, return false if queue is full, or job was dropped
     bool add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration);
+    /// stop a job, this will just set the end time to the current time
+    void stop(double curTime, AnimJobId jobId, bool allowFadeOut);
+    /// stop a track, this will set the end time of jobs overlapping curTime, and invalidate future jobs
+    void stopTrack(double curTime, int trackIndex, bool allowFadeOut);
+    /// stop all jobs
+    void stopAll(double curTime, bool allowFadeOut);
     /// remove invalid and expired items
     void garbageCollect(double curTime);
     /// evaluate (sample and mix) the animation into sampleBuffer

@@ -9,6 +9,14 @@ namespace Oryol {
 namespace _priv {
 
 //------------------------------------------------------------------------------
+static void
+checkValidateItem(animTracker::item& item) {
+    if (item.absStartTime >= item.absEndTime) {
+        item.valid = false;
+    }
+}
+
+//------------------------------------------------------------------------------
 bool
 animTracker::add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration) {
     if (this->items.Full()) {
@@ -91,11 +99,7 @@ animTracker::add(double curTime, AnimJobId jobId, const AnimJob& job, float clip
                 // if both sides were clipped, it means the current item
                 // is completely 'obscured' and needs to be removed
                 // during the next 'garbage collection' 
-                if (curItem.absStartTime >= curItem.absEndTime) {
-                    curItem.valid = false;
-                    curItem.absStartTime = 0.0;
-                    curItem.absEndTime = 0.0;
-                }
+                checkValidateItem(curItem);
             }
         } 
     }
@@ -103,9 +107,66 @@ animTracker::add(double curTime, AnimJobId jobId, const AnimJob& job, float clip
 }
 
 //------------------------------------------------------------------------------
+static void
+checkStopItem(double curTime, bool allowFadeOut, animTracker::item& item) {
+    if (curTime < item.absStartTime) {
+        // the item is in the future, can mark it as invalid
+        item.valid = false;
+    }
+    else if (curTime < item.absEndTime) {
+        // the item overlaps curTime, clamp the end time 
+        if (allowFadeOut) {
+            double fadeDuration = item.absEndTime - item.absFadeOutTime;
+            item.absFadeOutTime = curTime;
+            item.absEndTime = curTime + fadeDuration;
+        }
+        else {
+            item.absFadeOutTime = curTime;
+            item.absEndTime = curTime;
+        }
+        checkValidateItem(item);
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+animTracker::stop(double curTime, AnimJobId jobId, bool allowFadeOut) {
+    for (auto& curItem : this->items) {
+        if (curItem.id == jobId) {
+            checkStopItem(curTime, allowFadeOut, curItem);
+            break;
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+animTracker::stopTrack(double curTime, int trackIndex, bool allowFadeOut) {
+    for (auto& curItem : this->items) {
+        if (curItem.trackIndex == trackIndex) {
+            checkStopItem(curTime, allowFadeOut, curItem);
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+animTracker::stopAll(double curTime, bool allowFadeOut) {
+    for (auto& curItem : this->items) {
+        checkStopItem(curTime, allowFadeOut, curItem);
+    }
+}
+
+//------------------------------------------------------------------------------
 void
 animTracker::garbageCollect(double curTime) {
-
+    // remove all invalid items, and items where absEndTime is < curTime
+    for (int i = this->items.Size() - 1; i >= 0; i--) {
+        const auto& item = this->items[i];
+        if (!item.valid || (item.absEndTime < curTime)) {
+            this->items.Erase(i);
+        }
+    }
 }
 
 //------------------------------------------------------------------------------

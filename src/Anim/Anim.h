@@ -54,11 +54,11 @@ public:
     /// enqueue an animation job, return job id
     static AnimJobId Play(const Id& instId, const AnimJob& job);
     /// stop a specific animation job
-    static void Stop(const Id& instId, AnimJobId jobId, bool allowFadeOut);
+    static void Stop(const Id& instId, AnimJobId jobId, bool allowFadeOut=true);
     /// stop all jobs on a mixing track
-    static void StopTrack(const Id& instId, int trackIndex, bool allowFadeOut);
+    static void StopTrack(const Id& instId, int trackIndex, bool allowFadeOut=true);
     /// stop all jobs
-    static void StopAll(const Id& instId, bool allowFadeOut);
+    static void StopAll(const Id& instId, bool allowFadeOut=true);
 };
 
 } // namespace Oryol

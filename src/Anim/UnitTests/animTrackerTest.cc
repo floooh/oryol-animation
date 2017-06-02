@@ -14,6 +14,9 @@ TEST(animTrackerTest) {
     const double delta = 0.00001;
 
     animTracker tracker;
+    CHECK(tracker.items.Empty());
+    tracker.garbageCollect(1.0);
+    CHECK(tracker.items.Empty());
 
     AnimJob job0;
     job0.ClipIndex = 0;
@@ -166,6 +169,57 @@ TEST(animTrackerTest) {
     CHECK(tracker.items[6].id == 25);
     CHECK(!tracker.items[5].valid);
     
-    // FIXME: test garbageCollect
+    // test garbageCollect
+    tracker.garbageCollect(0.0);  // this should collect only the one invalid item
+    CHECK(tracker.items.Size() == 6);
+    CHECK(tracker.items[0].id == 31);
+    CHECK(tracker.items[1].id == 23);
+    CHECK(tracker.items[2].id == 66);
+    CHECK(tracker.items[3].id == 55);
+    CHECK(tracker.items[4].id == 77);
+    CHECK(tracker.items[5].id == 25);
+    tracker.garbageCollect(18.0);
+    CHECK(tracker.items.Size() == 3);
+    CHECK(tracker.items[0].id == 31);
+    CHECK(tracker.items[1].id == 55);
+    CHECK(tracker.items[2].id == 25);
+
+    // stop methods
+    tracker.stop(0.5, 25, true);
+    CHECK(tracker.items[2].id == 25);
+    CHECK(tracker.items[2].valid);
+    CHECK_CLOSE(tracker.items[2].absEndTime, 0.6, delta);
+    CHECK_CLOSE(tracker.items[2].absFadeOutTime, 0.5, delta);
+    tracker.stop(0.25, 25, false);
+    CHECK(tracker.items[2].id == 25);
+    CHECK(tracker.items[2].valid);
+    CHECK_CLOSE(tracker.items[2].absEndTime, 0.25, delta);
+    CHECK_CLOSE(tracker.items[2].absFadeOutTime, 0.25, delta);
+    tracker.stopTrack(7.5, 0, true);
+    CHECK(tracker.items[0].id == 31);
+    CHECK(tracker.items[0].valid);
+    CHECK_CLOSE(tracker.items[0].absEndTime, 7.7, delta);
+    CHECK_CLOSE(tracker.items[0].absFadeOutTime, 7.5, delta);
+    tracker.garbageCollect(20.0);
+    CHECK(tracker.items.Size() == 1);
+    CHECK(tracker.items[0].id == 55);
+    tracker.stopAll(40.0, false);
+    CHECK(tracker.items[0].valid);
+    CHECK(tracker.items[0].absEndTime == 40.0);
+    CHECK(tracker.items[0].absFadeOutTime == 40.0);
+
+    // check that stopping a future item works
+    AnimJob job7;
+    job7.ClipIndex = 3;
+    job7.TrackIndex = 4;
+    job7.StartTime = 0.0f;
+    job7.Duration = 5.0f;
+    job7.FadeIn = job3.FadeOut = 0.1f;
+    tracker.add(50.0, 123, job7, 5.0f);
+    CHECK(tracker.items.Size() == 2);
+    CHECK(tracker.items[0].id == 55);
+    CHECK(tracker.items[1].id == 123);
+    tracker.stop(5.0, 123, true);
+    CHECK(!tracker.items[1].valid);
 }
 
