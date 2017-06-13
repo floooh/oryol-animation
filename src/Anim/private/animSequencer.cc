@@ -1,8 +1,8 @@
 //------------------------------------------------------------------------------
-//  animTracker.cc
+//  animSequencer.cc
 //------------------------------------------------------------------------------
 #include "Pre.h"
-#include "animTracker.h"
+#include "animSequencer.h"
 #include <float.h>
 
 namespace Oryol {
@@ -10,7 +10,7 @@ namespace _priv {
 
 //------------------------------------------------------------------------------
 static void
-checkValidateItem(animTracker::item& item) {
+checkValidateItem(animSequencer::item& item) {
     if (item.absStartTime >= item.absEndTime) {
         item.valid = false;
     }
@@ -18,7 +18,7 @@ checkValidateItem(animTracker::item& item) {
 
 //------------------------------------------------------------------------------
 bool
-animTracker::add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration) {
+animSequencer::add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration) {
     if (this->items.Full()) {
         // no more free job slots
         return false;
@@ -108,7 +108,7 @@ animTracker::add(double curTime, AnimJobId jobId, const AnimJob& job, float clip
 
 //------------------------------------------------------------------------------
 static void
-checkStopItem(double curTime, bool allowFadeOut, animTracker::item& item) {
+checkStopItem(double curTime, bool allowFadeOut, animSequencer::item& item) {
     if (curTime < item.absStartTime) {
         // the item is in the future, can mark it as invalid
         item.valid = false;
@@ -130,7 +130,7 @@ checkStopItem(double curTime, bool allowFadeOut, animTracker::item& item) {
 
 //------------------------------------------------------------------------------
 void
-animTracker::stop(double curTime, AnimJobId jobId, bool allowFadeOut) {
+animSequencer::stop(double curTime, AnimJobId jobId, bool allowFadeOut) {
     for (auto& curItem : this->items) {
         if (curItem.id == jobId) {
             checkStopItem(curTime, allowFadeOut, curItem);
@@ -141,7 +141,7 @@ animTracker::stop(double curTime, AnimJobId jobId, bool allowFadeOut) {
 
 //------------------------------------------------------------------------------
 void
-animTracker::stopTrack(double curTime, int trackIndex, bool allowFadeOut) {
+animSequencer::stopTrack(double curTime, int trackIndex, bool allowFadeOut) {
     for (auto& curItem : this->items) {
         if (curItem.trackIndex == trackIndex) {
             checkStopItem(curTime, allowFadeOut, curItem);
@@ -151,7 +151,7 @@ animTracker::stopTrack(double curTime, int trackIndex, bool allowFadeOut) {
 
 //------------------------------------------------------------------------------
 void
-animTracker::stopAll(double curTime, bool allowFadeOut) {
+animSequencer::stopAll(double curTime, bool allowFadeOut) {
     for (auto& curItem : this->items) {
         checkStopItem(curTime, allowFadeOut, curItem);
     }
@@ -159,7 +159,7 @@ animTracker::stopAll(double curTime, bool allowFadeOut) {
 
 //------------------------------------------------------------------------------
 void
-animTracker::garbageCollect(double curTime) {
+animSequencer::garbageCollect(double curTime) {
     // remove all invalid items, and items where absEndTime is < curTime
     for (int i = this->items.Size() - 1; i >= 0; i--) {
         const auto& item = this->items[i];
@@ -171,7 +171,7 @@ animTracker::garbageCollect(double curTime) {
 
 //------------------------------------------------------------------------------
 void
-animTracker::eval(double curTime, float* sampleBuffer, int numSamples) {
+animSequencer::eval(double curTime, float* sampleBuffer, int numSamples) {
 
 }
 

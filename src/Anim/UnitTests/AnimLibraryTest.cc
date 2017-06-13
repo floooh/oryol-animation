@@ -9,14 +9,14 @@
 using namespace Oryol;
 using namespace _priv;
 
-TEST(animMgr) {
+TEST(AnimLibraryTest) {
 
     // setup
     AnimSetup setup;
     setup.MaxNumLibs = 4;
-    setup.MaxNumClips = 16;
-    setup.MaxNumCurves = 128;
-    setup.MaxNumKeys = 1024;
+    setup.ClipPoolCapacity = 16;
+    setup.CurvePoolCapacity = 128;
+    setup.KeyPoolCapacity = 1024;
     setup.ResourceLabelStackCapacity = 16;
     setup.ResourceRegistryCapacity = 24;
     animMgr mgr;
@@ -32,30 +32,29 @@ TEST(animMgr) {
     CHECK(mgr.numKeys == 0);
     CHECK(mgr.valuePool != nullptr);
 
-    // create a library with two clips
-    Array<AnimCurveFormat::Enum> curveLayout({
-        AnimCurveFormat::Float2,
-        AnimCurveFormat::Float3,
-        AnimCurveFormat::Float4,
-    });
-    Array<AnimCurveSetup> clip1Curves({
-        { false, 1.0f, 2.0f, 3.0f, 4.0f },
-        { false, 5.0f, 6.0f, 7.0f, 8.0f },
-        { true,  9.0f, 10.0f, 11.0f, 12.0f }
-    });
-    Array<AnimCurveSetup> clip2Curves({
-        { true, 4.0f, 3.0f, 2.0f, 1.0f },
-        { false, 8.0f, 7.0f, 6.0f, 5.0f },
-        { true,  12.0f, 11.0f, 10.0f, 9.0f }
-    });
-    Array<AnimClipSetup> clips({
-        { "clip1", 10, 0.04f, clip1Curves.MakeSlice() },
-        { "clip2", 20, 0.04f, clip2Curves.MakeSlice() },
-    });
     AnimLibrarySetup libSetup;
     libSetup.Name = "human";
-    libSetup.CurveLayout = curveLayout.MakeSlice();
-    libSetup.Clips = clips.MakeSlice();
+    libSetup.CurveLayout = {
+        AnimCurveFormat::Float2,
+        AnimCurveFormat::Float3,
+        AnimCurveFormat::Float4
+    };
+    libSetup.Clips = {
+        { "clip1", 10, 0.04f, 
+            {
+                { false, 1.0f, 2.0f, 3.0f, 4.0f },
+                { false, 5.0f, 6.0f, 7.0f, 8.0f },
+                { true,  9.0f, 10.0f, 11.0f, 12.0f },
+            }
+        },
+        { "clip2", 20, 0.04f, 
+            {
+                { true,  4.0f, 3.0f, 2.0f, 1.0f },
+                { false, 8.0f, 7.0f, 6.0f, 5.0f },
+                { true,  12.0f, 11.0f, 10.0f, 9.0f }
+            }
+        }
+    };
 
     ResourceLabel l1 = mgr.resContainer.PushLabel();
     Id lib1 = mgr.createLibrary(libSetup);

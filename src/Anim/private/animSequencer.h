@@ -1,7 +1,7 @@
 #pragma once
 //------------------------------------------------------------------------------
 /**
-    @class Oryol::_priv::animTracker
+    @class Oryol::_priv::animSequencer
     @ingroup _priv
     @brief a 'track sequencer' for animation priority blending
 */
@@ -12,7 +12,7 @@
 namespace Oryol {
 namespace _priv {
 
-class animTracker {
+class animSequencer {
 public:
     /// a track item for evaluating an anim job
     struct item {

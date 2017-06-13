@@ -4,9 +4,15 @@
 #include "Pre.h"
 #include "animMgr.h"
 #include "Core/Memory/Memory.h"
+#include <glm/gtc/matrix_transform.hpp>
 
 namespace Oryol {
 namespace _priv {
+
+//------------------------------------------------------------------------------
+animMgr::~animMgr() {
+    o_assert_dbg(!this->isValid);
+}
 
 //------------------------------------------------------------------------------
 void
@@ -16,12 +22,15 @@ animMgr::setup(const AnimSetup& setup) {
     this->isValid = true;
     this->resContainer.Setup(setup.ResourceLabelStackCapacity, setup.ResourceRegistryCapacity);
     this->libPool.Setup(resTypeLib, setup.MaxNumLibs);
+    this->skelPool.Setup(resTypeSkeleton, setup.MaxNumSkeletons);
     this->clipPool.SetAllocStrategy(0, 0);  // disable reallocation
-    this->clipPool.Reserve(setup.MaxNumClips);
+    this->clipPool.Reserve(setup.ClipPoolCapacity);
     this->curvePool.SetAllocStrategy(0, 0); // disable reallocation
-    this->curvePool.Reserve(setup.MaxNumCurves);
-    this->valuePool = (float*) Memory::Alloc(setup.MaxNumKeys * sizeof(float));
-    this->keys = Slice<float>(this->valuePool, setup.MaxNumKeys, 0, setup.MaxNumKeys);
+    this->curvePool.Reserve(setup.CurvePoolCapacity);
+    this->matrixPool.SetAllocStrategy(0, 0);
+    this->matrixPool.Reserve(setup.MatrixPoolCapacity);
+    this->valuePool = (float*) Memory::Alloc(setup.KeyPoolCapacity * sizeof(float));
+    this->keys = Slice<float>(this->valuePool, setup.KeyPoolCapacity);
 }
 
 //------------------------------------------------------------------------------
@@ -32,9 +41,11 @@ animMgr::discard() {
 
     this->destroy(ResourceLabel::All);
     this->resContainer.Discard();
+    this->skelPool.Discard();
     this->libPool.Discard();
     o_assert_dbg(this->clipPool.Empty());
     o_assert_dbg(this->curvePool.Empty());
+    o_assert_dbg(this->matrixPool.Empty());
     this->keys = Slice<float>();
     Memory::Free(this->valuePool);
     this->valuePool = nullptr;
@@ -163,6 +174,9 @@ animMgr::destroy(const ResourceLabel& label) {
             case resTypeLib:
                 this->destroyLibrary(id);
                 break;
+            case resTypeSkeleton:
+                this->destroySkeleton(id);
+                break;
             // FIXME: more types?
         }
     }
@@ -179,6 +193,70 @@ animMgr::destroyLibrary(const Id& id) {
         lib->clear();
     }
     this->libPool.Unassign(id);
+}
+
+//------------------------------------------------------------------------------
+Id
+animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
+    o_assert_dbg(this->isValid);
+    o_assert_dbg(setup.Name.IsValid());
+    o_assert_dbg(!setup.Bones.Empty());
+
+    // check if skeleton already exists
+    Id resId = this->resContainer.registry.Lookup(setup.Name);
+    if (resId.IsValid()) {
+        o_assert_dbg(resId.Type == resTypeSkeleton);
+        return resId;
+    }
+    
+    // check if resource limits are reached
+    if ((this->matrixPool.Size() + setup.Bones.Size()*2) >= this->matrixPool.Capacity()) {
+        o_warn("Anim: matrix pool exhausted!\n");
+        return Id::InvalidId();
+    }
+    
+    // create new skeleton
+    resId = this->skelPool.AllocId();
+    AnimSkeleton& skel = this->skelPool.Assign(resId, ResourceState::Setup);
+    skel.Name = setup.Name;
+    skel.NumBones = setup.Bones.Size();
+    const int matrixPoolIndex = this->matrixPool.Size();
+    for (const auto& bone : setup.Bones) {
+        this->matrixPool.Add(glm::inverse(bone.InvBindPose));
+    }
+    for (const auto& bone : setup.Bones) {
+        this->matrixPool.Add(bone.InvBindPose);
+    }
+    skel.Matrices = this->matrixPool.MakeSlice(matrixPoolIndex, skel.NumBones * 2);
+    skel.BindPose = skel.Matrices.MakeSlice(0, skel.NumBones);
+    skel.InvBindPose = skel.Matrices.MakeSlice(skel.NumBones, skel.NumBones);
+    for (int i = 0; i < skel.NumBones; i++) {
+        skel.ParentIndices[i] = setup.Bones[i].ParentIndex;
+    }
+
+    // register the new resource, and done
+    this->resContainer.registry.Add(setup.Name, resId, this->resContainer.PeekLabel());
+    this->skelPool.UpdateState(resId, ResourceState::Valid);
+    return resId;
+}
+
+//------------------------------------------------------------------------------
+AnimSkeleton*
+animMgr::lookupSkeleton(const Id& resId) {
+    o_assert_dbg(this->isValid);
+    o_assert_dbg(resId.Type == resTypeSkeleton);
+    return this->skelPool.Lookup(resId);
+}
+
+//------------------------------------------------------------------------------
+void
+animMgr::destroySkeleton(const Id& id) {
+    AnimSkeleton* skel = this->skelPool.Lookup(id);
+    if (skel) {
+        this->removeMatrices(skel->Matrices);
+        skel->clear();
+    }
+    this->skelPool.Unassign(id);
 }
 
 //------------------------------------------------------------------------------
@@ -234,6 +312,21 @@ animMgr::removeClips(Slice<AnimClip> range) {
         AnimLibrary& lib = this->libPool.slots[slotIndex];
         if (lib.Id.IsValid()) {
             lib.Clips.FillGap(range.Offset(), range.Size());
+        }
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+animMgr::removeMatrices(Slice<glm::mat4> range) {
+    this->matrixPool.EraseRange(range.Offset(), range.Size());
+
+    // fix the skeleton matrix slices
+    for (Id::SlotIndexT slotIndex = 0; slotIndex <= this->skelPool.LastAllocSlot; slotIndex++) {
+        AnimSkeleton& skel = this->skelPool.slots[slotIndex];
+        if (skel.Id.IsValid()) {
+            skel.BindPose.FillGap(range.Offset(), range.Size());
+            skel.InvBindPose.FillGap(range.Offset(), range.Size());
         }
     }
 }

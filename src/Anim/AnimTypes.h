@@ -2,12 +2,25 @@
 //------------------------------------------------------------------------------
 #include "Core/Types.h"
 #include "Core/String/StringAtom.h"
-#include "Core/Containers/Slice.h"
+#include "Core/Containers/Array.h"
 #include "Core/Containers/StaticArray.h"
 #include "Core/Containers/Map.h"
 #include "Resource/ResourceBase.h"
+#include <glm/vec4.hpp>
+#include <glm/mat4x4.hpp>
 
 namespace Oryol {
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimConfig
+    @ingroup Anim
+    @brief animation system config constants
+*/
+struct AnimConfig {
+    /// max number of bones in a skeleton
+    static const int MaxNumSkeletonBones = 256;
+};
 
 //------------------------------------------------------------------------------
 /**
@@ -18,14 +31,18 @@ namespace Oryol {
 struct AnimSetup {
     /// max number of anim libraries
     int MaxNumLibs = 16;
+    /// max number of skeleton
+    int MaxNumSkeletons = 16;
+    /// max number of anim instances
+    int MaxNumInstances = 128;
     /// max overall number of anim clips
-    int MaxNumClips = MaxNumLibs * 64;
+    int ClipPoolCapacity = MaxNumLibs * 64;
     /// max overall number of anim curves
-    int MaxNumCurves = MaxNumClips * 256;
-    /// max number of animation instances
-    int MaxNumInstances = MaxNumLibs * 128;
+    int CurvePoolCapacity = ClipPoolCapacity * 256;
     /// max number of float keys
-    int MaxNumKeys = 4 * 1024 * 1024; 
+    int KeyPoolCapacity = 4 * 1024 * 1024;
+    /// max number of the skeleton matrix pool (2 matrices per bone)
+    int MatrixPoolCapacity = 1024;
     /// initial resource label stack capacity
     int ResourceLabelStackCapacity = 256;
     /// initial resource registry capacity
@@ -71,15 +88,13 @@ struct AnimCurveSetup {
     /// true if the curve is actually a single value
     bool Static = false;
     /// the default value of the curve
-    StaticArray<float, 4> StaticValue;
+    glm::vec4 StaticValue;
     
     /// default constructor
     AnimCurveSetup() { };
     /// construct from values
-    AnimCurveSetup(bool isStatic, float x=0.0f, float y=0.0f, float z=0.0f, float w=0.0f) {
-        Static = isStatic;
-        StaticValue[0] = x; StaticValue[1] = y; StaticValue[2] = z; StaticValue[3] = w;
-    };
+    AnimCurveSetup(bool isStatic, float x, float y, float z, float w):
+        Static(isStatic), StaticValue(x, y, z, w) { };
 };
 
 //------------------------------------------------------------------------------
@@ -96,12 +111,12 @@ struct AnimClipSetup {
     /// the time duration from one key to next in seconds
     float KeyDuration = 1.0f / 25.0f;
     /// a description of each curve in the clip
-    Slice<AnimCurveSetup> Curves;
+    Array<AnimCurveSetup> Curves;
 
     /// default constructor
     AnimClipSetup() { };
     /// construct from values
-    AnimClipSetup(const StringAtom& name, int len, float dur, const Slice<AnimCurveSetup>& curves):
+    AnimClipSetup(const StringAtom& name, int len, float dur, const Array<AnimCurveSetup>& curves):
         Name(name), Length(len), KeyDuration(dur), Curves(curves) { };
 };
 
@@ -118,9 +133,59 @@ struct AnimLibrarySetup {
     /// the name of the anim library
     StringAtom Name;
     /// number and format of curves (must be identical for all clips)
-    Slice<AnimCurveFormat::Enum> CurveLayout;
+    Array<AnimCurveFormat::Enum> CurveLayout;
     /// the anim clips in the library
-    Slice<AnimClipSetup> Clips;
+    Array<AnimClipSetup> Clips;
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimBoneSetup
+    @ingroup Anim
+    @brief setup params for an animation bone
+*/
+struct AnimBoneSetup {
+    /// the bone's name
+    StringAtom Name;
+    /// index of parent joint, InvalidIndex if a root joint
+    int16_t ParentIndex = InvalidIndex;
+    /// the inverse bind pose matrix in model space
+    glm::mat4 InvBindPose;
+
+    /// default constructor
+    AnimBoneSetup() { };
+    /// construct from params
+    AnimBoneSetup(const StringAtom& name, int parentIndex, const glm::mat4& invBindPose):
+        Name(name), ParentIndex(parentIndex), InvBindPose(invBindPose) { };
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimSkeletonSetup
+    @ingroup Anim
+    @brief setup params for a character skeleton
+*/
+struct AnimSkeletonSetup {
+    /// a name for the skeleton
+    StringAtom Name;
+    /// the skeleton bones
+    Array<AnimBoneSetup> Bones; 
+};
+
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimInstanceSetup
+    @ingroup Anim
+    @brief setup params for an animation instance
+*/
+struct AnimInstanceSetup {
+    /// create AnimInstanceSetup from AnimLibrary Id
+    static AnimInstanceSetup FromLibrary(Id libId);
+
+    /// the AnimLibrary of this instance
+    Id Library;
+    /// an optional AnimSkeleton if this is an instance
+    Id Skeleton;
 };
 
 //------------------------------------------------------------------------------
@@ -137,7 +202,7 @@ struct AnimCurve {
     /// is the curve static? (no actual keys in key pool)
     bool Static = false;
     /// the static value if the curve has no keys
-    StaticArray<float, 4> StaticValue;
+    glm::vec4 StaticValue;
     /// index of the first key in key pool (relative to clip)
     int KeyIndex = InvalidIndex;
 };
@@ -196,16 +261,32 @@ struct AnimLibrary : public ResourceBase {
 
 //------------------------------------------------------------------------------
 /**
-    @class Oryol::AnimInstanceSetup
+    @class Oryol::AnimSkeleton
     @ingroup Anim
-    @brief setup params for an animation instance
+    @brief runtime struct for an animation skeleton
 */
-struct AnimInstanceSetup {
-    /// create AnimInstanceSetup from AnimLibrary Id
-    static AnimInstanceSetup FromLibrary(Id libId);
+struct AnimSkeleton : public ResourceBase {
+    /// name of the skeleton
+    StringAtom Name;
+    /// number of bones in the skeleton
+    int NumBones = 0;
+    /// the bind pose matrices (non-inverse)
+    Slice<glm::mat4> BindPose;
+    /// the inverse bind pose matrices
+    Slice<glm::mat4> InvBindPose;
+    /// this is the range of all matrices (BindPose and InvBindPose)
+    Slice<glm::mat4> Matrices;
+    /// the parent bone indices (-1 if a root bone)
+    StaticArray<int16_t, AnimConfig::MaxNumSkeletonBones> ParentIndices;
 
-    /// the AnimLibrary of this instance
-    Id Library;
+    /// clear the object
+    void clear() {
+        Name.Clear();
+        NumBones = 0;
+        BindPose = Slice<glm::mat4>();
+        InvBindPose = Slice<glm::mat4>();
+        Matrices = Slice<glm::mat4>();
+    };
 };
 
 //------------------------------------------------------------------------------

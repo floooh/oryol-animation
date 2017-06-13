@@ -15,6 +15,9 @@ namespace _priv {
 
 class animMgr {
 public:
+    /// destructor
+    ~animMgr();
+
     /// setup the anim mgr
     void setup(const AnimSetup& setup);
     /// discard the anim mgr
@@ -30,6 +33,13 @@ public:
     /// destroy an animation library
     void destroyLibrary(const Id& resId);
 
+    /// create a skeleton
+    Id createSkeleton(const AnimSkeletonSetup& setup);
+    /// lookup pointer to skeleton
+    AnimSkeleton* lookupSkeleton(const Id& resId);
+    /// destroy a skeleton
+    void destroySkeleton(const Id& resId);
+
     /// create an animation instance
     Id createInstance(const AnimInstanceSetup& setup);
     /// lookup pointer to an animation instance
@@ -43,15 +53,20 @@ public:
     void removeCurves(Slice<AnimCurve> curveRange);
     /// remove a range of clips from clip pool, and fixup libraries
     void removeClips(Slice<AnimClip> clipRange);
+    /// remove a range of matrices from the matrix pool
+    void removeMatrices(Slice<glm::mat4> matrixRange);
 
     static const Id::TypeT resTypeLib = 1;
-    static const Id::TypeT resTypeInstance = 2;
+    static const Id::TypeT resTypeSkeleton = 2;
+    static const Id::TypeT resTypeInstance = 3;
 
     bool isValid = false;
     ResourceContainerBase resContainer;
     ResourcePool<AnimLibrary> libPool;
+    ResourcePool<AnimSkeleton> skelPool;
     Array<AnimClip> clipPool;
     Array<AnimCurve> curvePool;
+    Array<glm::mat4> matrixPool;
     int numKeys = 0;
     Slice<float> keys;
     float* valuePool = nullptr;
