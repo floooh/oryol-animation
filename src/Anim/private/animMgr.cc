@@ -222,7 +222,7 @@ animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
     skel.NumBones = setup.Bones.Size();
     const int matrixPoolIndex = this->matrixPool.Size();
     for (const auto& bone : setup.Bones) {
-        this->matrixPool.Add(glm::inverse(bone.InvBindPose));
+        this->matrixPool.Add(bone.BindPose);
     }
     for (const auto& bone : setup.Bones) {
         this->matrixPool.Add(bone.InvBindPose);

@@ -15,7 +15,7 @@ namespace Oryol {
 class Anim {
 public:
     /// setup the animation module
-    static void Setup(const AnimSetup& setup);
+    static void Setup(const AnimSetup& setup = AnimSetup());
     /// discard the animation module
     static void Discard();
     /// check if animation module is setup

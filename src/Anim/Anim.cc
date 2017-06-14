@@ -69,6 +69,13 @@ Anim::Create(const AnimLibrarySetup& setup) {
 }
 
 //------------------------------------------------------------------------------
+template<> Id
+Anim::Create(const AnimSkeletonSetup& setup) {
+    o_assert_dbg(IsValid());
+    return state->mgr.createSkeleton(setup);
+}
+
+//------------------------------------------------------------------------------
 Id
 Anim::Lookup(const Locator& name) {
     o_assert_dbg(IsValid());

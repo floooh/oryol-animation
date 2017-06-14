@@ -149,14 +149,16 @@ struct AnimBoneSetup {
     StringAtom Name;
     /// index of parent joint, InvalidIndex if a root joint
     int16_t ParentIndex = InvalidIndex;
+    /// the normal (non-inverse) bind pose matrix in model space
+    glm::mat4 BindPose;
     /// the inverse bind pose matrix in model space
     glm::mat4 InvBindPose;
 
     /// default constructor
     AnimBoneSetup() { };
     /// construct from params
-    AnimBoneSetup(const StringAtom& name, int parentIndex, const glm::mat4& invBindPose):
-        Name(name), ParentIndex(parentIndex), InvBindPose(invBindPose) { };
+    AnimBoneSetup(const StringAtom& name, int parentIndex, const glm::mat4& bindPose, const glm::mat4& invBindPose):
+        Name(name), ParentIndex(parentIndex), BindPose(bindPose), InvBindPose(invBindPose) { };
 };
 
 //------------------------------------------------------------------------------
