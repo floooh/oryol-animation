@@ -73,7 +73,7 @@ struct AnimCurveFormat {
             case Float3:        return 3;
             case Float4:        return 4;
             case Quaternion:    return 4;
-            case Invalid:       return 0;
+            default:            return 0;
         }
     }
 };
