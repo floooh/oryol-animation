@@ -111,6 +111,19 @@ Anim::Library(const Id& libId) {
 }
 
 //------------------------------------------------------------------------------
+void
+Anim::WriteKeys(const Id& libId, const uint8_t* ptr, int numBytes) {
+    o_assert_dbg(IsValid());
+    AnimLibrary* lib = state->mgr.lookupLibrary(libId);
+    if (lib) {
+        state->mgr.writeKeys(lib, ptr, numBytes);
+    }
+    else {
+        o_warn("Anim::WriteKeys: invalid anim lib id\n");
+    }
+}
+
+//------------------------------------------------------------------------------
 bool
 Anim::HasSkeleton(const Id& skelId) {
     o_assert_dbg(IsValid());

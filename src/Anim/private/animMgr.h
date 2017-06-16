@@ -56,6 +56,9 @@ public:
     /// remove a range of matrices from the matrix pool
     void removeMatrices(Slice<glm::mat4> matrixRange);
 
+    /// write animition library keys
+    void writeKeys(AnimLibrary* lib, const uint8_t* ptr, int numBytes);
+
     static const Id::TypeT resTypeLib = 1;
     static const Id::TypeT resTypeSkeleton = 2;
     static const Id::TypeT resTypeInstance = 3;

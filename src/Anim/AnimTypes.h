@@ -199,12 +199,12 @@ struct AnimInstanceSetup {
 struct AnimCurve {
     /// the curve format
     AnimCurveFormat::Enum Format = AnimCurveFormat::Invalid;
-    /// stride in float (according to format)
-    int Stride = 0;
     /// is the curve static? (no actual keys in key pool)
     bool Static = false;
     /// the static value if the curve has no keys
     glm::vec4 StaticValue;
+    /// stride in float (according to format)
+    int KeyStride = 0;
     /// index of the first key in key pool (relative to clip)
     int KeyIndex = InvalidIndex;
 };

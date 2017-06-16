@@ -43,12 +43,15 @@ public:
     static bool HasLibrary(const Id& libId);
     /// access an animation library
     static const AnimLibrary& Library(const Id& libId);
+    /// lookup a clip index by name
+    static int ClipIndex(const Id& libId, const StringAtom& clipName);
+    /// write anim library keys
+    static void WriteKeys(const Id& libId, const uint8_t* ptr, int numBytes);
+
     /// return true if a valid anim skeleton exists for id
     static bool HasSkeleton(const Id& skelId);
     /// access a skeleton
     static const AnimSkeleton& Skeleton(const Id& skelId);
-    /// lookup a clip index by name
-    static int ClipIndex(const Id& libId, const StringAtom& clipName);
 
     /// enable an animation instance
     static void EnableInstance(const Id& instId);
@@ -56,7 +59,7 @@ public:
     static void DisableInstance(const Id& instId);
     /// return true if an animation instance is enabled
     static bool IsInstanceEnabed(const Id& instId);
-    
+
     /// enqueue an animation job, return job id
     static AnimJobId Play(const Id& instId, const AnimJob& job);
     /// stop a specific animation job

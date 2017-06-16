@@ -120,8 +120,8 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
             curve.StaticValue = curveSetup.StaticValue;
             if (!curve.Static) {
                 curve.KeyIndex = clip.KeyStride;
-                curve.Stride = AnimCurveFormat::Stride(curve.Format);
-                clip.KeyStride += curve.Stride;
+                curve.KeyStride = AnimCurveFormat::Stride(curve.Format);
+                clip.KeyStride += curve.KeyStride;
             }
         }
         clip.Curves = this->curvePool.MakeSlice(curveIndex, clipSetup.Curves.Size());
@@ -142,7 +142,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
         for (int row = 0; row < clip.Length; row++) {
             int offset = row * clip.KeyStride;
             for (const auto& curve : clip.Curves) {
-                for (int i = 0; i < curve.Stride; i++) {
+                for (int i = 0; i < curve.KeyStride; i++) {
                     clip.Keys[offset++] = curve.StaticValue[i];
                 }
             }
@@ -327,6 +327,14 @@ animMgr::removeMatrices(Slice<glm::mat4> range) {
             skel.InvBindPose.FillGap(range.Offset(), range.Size());
         }
     }
+}
+
+//------------------------------------------------------------------------------
+void
+animMgr::writeKeys(AnimLibrary* lib, const uint8_t* ptr, int numBytes) {
+    o_assert_dbg(lib && ptr && numBytes > 0);
+    o_assert_dbg(lib->Keys.Size()*sizeof(float) == numBytes);
+    Memory::Copy(ptr, lib->Keys.begin(), numBytes);
 }
 
 } // namespace _priv
