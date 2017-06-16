@@ -107,16 +107,14 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     int clipKeyIndex = this->numKeys;
     for (const auto& clipSetup : libSetup.Clips) {
         lib.ClipIndexMap.Add(clipSetup.Name, this->clipPool.Size());
-        this->clipPool.Add();
-        AnimClip& clip = this->clipPool.Back();
+        AnimClip& clip = this->clipPool.Add();
         clip.Name = clipSetup.Name;
         clip.Length = clipSetup.Length;
         clip.KeyDuration = clipSetup.KeyDuration;
         const int curveIndex = this->curvePool.Size();
         for (int curveIndex = 0; curveIndex < clipSetup.Curves.Size(); curveIndex++) {
             const auto& curveSetup = clipSetup.Curves[curveIndex];
-            this->curvePool.Add();
-            AnimCurve& curve = this->curvePool.Back();
+            AnimCurve& curve = this->curvePool.Add();
             curve.Static = curveSetup.Static;
             curve.Format = libSetup.CurveLayout[curveIndex];
             curve.StaticValue = curveSetup.StaticValue;
