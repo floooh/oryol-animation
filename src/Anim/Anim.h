@@ -39,8 +39,14 @@ public:
     /// destroy one or several anim resources by label
     static void Destroy(ResourceLabel label);
 
+    /// return true if a valid anim library exists for id
+    static bool HasLibrary(const Id& libId);
     /// access an animation library
     static const AnimLibrary& Library(const Id& libId);
+    /// return true if a valid anim skeleton exists for id
+    static bool HasSkeleton(const Id& skelId);
+    /// access a skeleton
+    static const AnimSkeleton& Skeleton(const Id& skelId);
     /// lookup a clip index by name
     static int ClipIndex(const Id& libId, const StringAtom& clipName);
 

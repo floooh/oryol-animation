@@ -89,4 +89,46 @@ Anim::Destroy(ResourceLabel label) {
     return state->mgr.destroy(label);
 }
 
+//------------------------------------------------------------------------------
+bool
+Anim::HasLibrary(const Id& libId) {
+    o_assert_dbg(IsValid());
+    return nullptr != state->mgr.lookupLibrary(libId);
+}
+
+//------------------------------------------------------------------------------
+const AnimLibrary&
+Anim::Library(const Id& libId) {
+    o_assert_dbg(IsValid());
+    const AnimLibrary* lib = state->mgr.lookupLibrary(libId);
+    if (lib) {
+        return *lib;
+    }
+    else {
+        static AnimLibrary dummyLib;
+        return dummyLib;
+    }
+}
+
+//------------------------------------------------------------------------------
+bool
+Anim::HasSkeleton(const Id& skelId) {
+    o_assert_dbg(IsValid());
+    return nullptr != state->mgr.lookupSkeleton(skelId);
+}
+
+//------------------------------------------------------------------------------
+const AnimSkeleton&
+Anim::Skeleton(const Id& skelId) {
+    o_assert_dbg(IsValid());
+    const AnimSkeleton* skel = state->mgr.lookupSkeleton(skelId);
+    if (skel) {
+        return *skel;
+    }
+    else {
+        static AnimSkeleton dummySkel;
+        return dummySkel;
+    }
+}
+
 } // namespace Oryol
