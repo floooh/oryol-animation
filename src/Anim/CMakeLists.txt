@@ -8,6 +8,7 @@ fips_begin_module(Anim)
     fips_files(
         animMgr.h animMgr.cc
         animSequencer.h animSequencer.cc
+        animInstance.h
     )
     fips_deps(Core Resource)
 fips_end_module()

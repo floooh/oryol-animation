@@ -50,8 +50,8 @@ public:
     void stopAll(double curTime, bool allowFadeOut);
     /// remove invalid and expired items
     void garbageCollect(double curTime);
-    /// evaluate (sample and mix) the animation into sampleBuffer
-    void eval(double curTime, float* sampleBuffer, int numSamples);
+    /// evaluate all active anim jobs into sample buffer, return false if there was nothing to do
+    bool eval(const AnimLibrary* lib, double curTime, float* sampleBuffer, int numSamples);
 };
 
 } // namespace _priv

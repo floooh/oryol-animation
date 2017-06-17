@@ -33,14 +33,18 @@ struct AnimSetup {
     int MaxNumLibs = 16;
     /// max number of skeleton
     int MaxNumSkeletons = 16;
-    /// max number of anim instances
+    /// max overall number of anim instances
     int MaxNumInstances = 128;
+    /// max number of active instances per frame
+    int MaxNumActiveInstances = 128;
     /// max overall number of anim clips
     int ClipPoolCapacity = MaxNumLibs * 64;
     /// max overall number of anim curves
     int CurvePoolCapacity = ClipPoolCapacity * 256;
-    /// max number of float keys
+    /// max capacity of the (input) key pool in number of floats
     int KeyPoolCapacity = 4 * 1024 * 1024;
+    /// max number of samples for visible instances (in number of floats)
+    int SamplePoolCapacity = 4 * 1024 * 1024;
     /// max number of the skeleton matrix pool (2 matrices per bone)
     int MatrixPoolCapacity = 1024;
     /// initial resource label stack capacity
@@ -182,7 +186,18 @@ struct AnimSkeletonSetup {
 */
 struct AnimInstanceSetup {
     /// create AnimInstanceSetup from AnimLibrary Id
-    static AnimInstanceSetup FromLibrary(Id libId);
+    static AnimInstanceSetup FromLibrary(Id libId) {
+        AnimInstanceSetup setup;
+        setup.Library = libId;
+        return setup;
+    };
+    /// create AnimInstanceSetup from AnimLibrary and AnimSkeleton Id
+    static AnimInstanceSetup FromLibraryAndSkeleton(Id libId, Id skelId) {
+        AnimInstanceSetup setup;
+        setup.Library = libId;
+        setup.Skeleton = skelId;
+        return setup;
+    };
 
     /// the AnimLibrary of this instance
     Id Library;
@@ -199,6 +214,8 @@ struct AnimInstanceSetup {
 struct AnimCurve {
     /// the curve format
     AnimCurveFormat::Enum Format = AnimCurveFormat::Invalid;
+    /// number of values (1, 2, 3 or 4)
+    int NumValues = 0;
     /// is the curve static? (no actual keys in key pool)
     bool Static = false;
     /// the static value if the curve has no keys
@@ -239,7 +256,7 @@ struct AnimClip {
 struct AnimLibrary : public ResourceBase {
     /// name of the library
     StringAtom Name;
-    /// stride of per-instance samples samples in number of floats
+    /// stride of per-instance samples in number of floats
     int SampleStride = 0;
     /// access to all clips in the library
     Slice<AnimClip> Clips;

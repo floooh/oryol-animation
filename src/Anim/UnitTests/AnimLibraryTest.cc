@@ -77,7 +77,7 @@ TEST(AnimLibraryTest) {
     CHECK(lib1Ptr->Clips[0].Curves.Size() == 3);
     CHECK(lib1Ptr->Clips[0].Curves.Offset() == 0);
     CHECK(lib1Ptr->Clips[0].Curves[0].Format == AnimCurveFormat::Float2);
-    CHECK(lib1Ptr->Clips[0].Curves[0].Stride == 2);
+    CHECK(lib1Ptr->Clips[0].Curves[0].KeyStride == 2);
     CHECK(!lib1Ptr->Clips[0].Curves[0].Static);
     CHECK(lib1Ptr->Clips[0].Curves[0].KeyIndex == 0);
     CHECK_CLOSE(lib1Ptr->Clips[0].Curves[0].StaticValue[0], 1.0f, 0.001f);
@@ -85,7 +85,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib1Ptr->Clips[0].Curves[0].StaticValue[2], 3.0f, 0.001f);
     CHECK_CLOSE(lib1Ptr->Clips[0].Curves[0].StaticValue[3], 4.0f, 0.001f);
     CHECK(lib1Ptr->Clips[0].Curves[1].Format == AnimCurveFormat::Float3);
-    CHECK(lib1Ptr->Clips[0].Curves[1].Stride == 3);
+    CHECK(lib1Ptr->Clips[0].Curves[1].KeyStride == 3);
     CHECK(!lib1Ptr->Clips[0].Curves[1].Static);
     CHECK(lib1Ptr->Clips[0].Curves[1].KeyIndex == 2);
     CHECK_CLOSE(lib1Ptr->Clips[0].Curves[1].StaticValue[0], 5.0f, 0.001f);
@@ -93,7 +93,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib1Ptr->Clips[0].Curves[1].StaticValue[2], 7.0f, 0.001f);
     CHECK_CLOSE(lib1Ptr->Clips[0].Curves[1].StaticValue[3], 8.0f, 0.001f);
     CHECK(lib1Ptr->Clips[0].Curves[2].Format == AnimCurveFormat::Float4);
-    CHECK(lib1Ptr->Clips[0].Curves[2].Stride == 0);
+    CHECK(lib1Ptr->Clips[0].Curves[2].KeyStride == 0);
     CHECK(lib1Ptr->Clips[0].Curves[2].Static);
     CHECK(lib1Ptr->Clips[0].Curves[2].KeyIndex == InvalidIndex);
     CHECK_CLOSE(lib1Ptr->Clips[0].Curves[2].StaticValue[0], 9.0f, 0.001f);
@@ -108,7 +108,7 @@ TEST(AnimLibraryTest) {
     CHECK(lib1Ptr->Clips[1].Curves.Size() == 3);
     CHECK(lib1Ptr->Clips[1].Curves.Offset() == 3);
     CHECK(lib1Ptr->Clips[1].Curves[0].Format == AnimCurveFormat::Float2);
-    CHECK(lib1Ptr->Clips[1].Curves[0].Stride == 0);
+    CHECK(lib1Ptr->Clips[1].Curves[0].KeyStride == 0);
     CHECK(lib1Ptr->Clips[1].Curves[0].Static);
     CHECK(lib1Ptr->Clips[1].Curves[0].KeyIndex == InvalidIndex);
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[0].StaticValue[0], 4.0f, 0.001f);
@@ -116,7 +116,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[0].StaticValue[2], 2.0f, 0.001f);
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[0].StaticValue[3], 1.0f, 0.001f);
     CHECK(lib1Ptr->Clips[1].Curves[1].Format == AnimCurveFormat::Float3);
-    CHECK(lib1Ptr->Clips[1].Curves[1].Stride == 3);
+    CHECK(lib1Ptr->Clips[1].Curves[1].KeyStride == 3);
     CHECK(!lib1Ptr->Clips[1].Curves[1].Static);
     CHECK(lib1Ptr->Clips[1].Curves[1].KeyIndex == 0);
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[1].StaticValue[0], 8.0f, 0.001f);
@@ -124,7 +124,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[1].StaticValue[2], 6.0f, 0.001f);
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[1].StaticValue[3], 5.0f, 0.001f);
     CHECK(lib1Ptr->Clips[1].Curves[2].Format == AnimCurveFormat::Float4);
-    CHECK(lib1Ptr->Clips[1].Curves[2].Stride == 0);
+    CHECK(lib1Ptr->Clips[1].Curves[2].KeyStride == 0);
     CHECK(lib1Ptr->Clips[1].Curves[2].Static);
     CHECK(lib1Ptr->Clips[1].Curves[2].KeyIndex == InvalidIndex);
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[2].StaticValue[0], 12.0f, 0.001f);
@@ -152,7 +152,7 @@ TEST(AnimLibraryTest) {
     CHECK(lib2Ptr->Clips[0].Curves.Size() == 3);
     CHECK(lib2Ptr->Clips[0].Curves.Offset() == 6);
     CHECK(lib2Ptr->Clips[0].Curves[0].Format == AnimCurveFormat::Float2);
-    CHECK(lib2Ptr->Clips[0].Curves[0].Stride == 2);
+    CHECK(lib2Ptr->Clips[0].Curves[0].KeyStride == 2);
     CHECK(!lib2Ptr->Clips[0].Curves[0].Static);
     CHECK(lib2Ptr->Clips[0].Curves[0].KeyIndex == 0);
     CHECK_CLOSE(lib2Ptr->Clips[0].Curves[0].StaticValue[0], 1.0f, 0.001f);
@@ -160,7 +160,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib2Ptr->Clips[0].Curves[0].StaticValue[2], 3.0f, 0.001f);
     CHECK_CLOSE(lib2Ptr->Clips[0].Curves[0].StaticValue[3], 4.0f, 0.001f);
     CHECK(lib2Ptr->Clips[0].Curves[1].Format == AnimCurveFormat::Float3);
-    CHECK(lib2Ptr->Clips[0].Curves[1].Stride == 3);
+    CHECK(lib2Ptr->Clips[0].Curves[1].KeyStride == 3);
     CHECK(!lib2Ptr->Clips[0].Curves[1].Static);
     CHECK(lib2Ptr->Clips[0].Curves[1].KeyIndex == 2);
     CHECK_CLOSE(lib2Ptr->Clips[0].Curves[1].StaticValue[0], 5.0f, 0.001f);
@@ -168,7 +168,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib2Ptr->Clips[0].Curves[1].StaticValue[2], 7.0f, 0.001f);
     CHECK_CLOSE(lib2Ptr->Clips[0].Curves[1].StaticValue[3], 8.0f, 0.001f);
     CHECK(lib2Ptr->Clips[0].Curves[2].Format == AnimCurveFormat::Float4);
-    CHECK(lib2Ptr->Clips[0].Curves[2].Stride == 0);
+    CHECK(lib2Ptr->Clips[0].Curves[2].KeyStride == 0);
     CHECK(lib2Ptr->Clips[0].Curves[2].Static);
     CHECK(lib2Ptr->Clips[0].Curves[2].KeyIndex == InvalidIndex);
     CHECK_CLOSE(lib2Ptr->Clips[0].Curves[2].StaticValue[0], 9.0f, 0.001f);
@@ -183,7 +183,7 @@ TEST(AnimLibraryTest) {
     CHECK(lib2Ptr->Clips[1].Curves.Size() == 3);
     CHECK(lib2Ptr->Clips[1].Curves.Offset() == 9);
     CHECK(lib2Ptr->Clips[1].Curves[0].Format == AnimCurveFormat::Float2);
-    CHECK(lib2Ptr->Clips[1].Curves[0].Stride == 0);
+    CHECK(lib2Ptr->Clips[1].Curves[0].KeyStride == 0);
     CHECK(lib2Ptr->Clips[1].Curves[0].Static);
     CHECK(lib2Ptr->Clips[1].Curves[0].KeyIndex == InvalidIndex);
     CHECK_CLOSE(lib2Ptr->Clips[1].Curves[0].StaticValue[0], 4.0f, 0.001f);
@@ -191,7 +191,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib2Ptr->Clips[1].Curves[0].StaticValue[2], 2.0f, 0.001f);
     CHECK_CLOSE(lib2Ptr->Clips[1].Curves[0].StaticValue[3], 1.0f, 0.001f);
     CHECK(lib2Ptr->Clips[1].Curves[1].Format == AnimCurveFormat::Float3);
-    CHECK(lib2Ptr->Clips[1].Curves[1].Stride == 3);
+    CHECK(lib2Ptr->Clips[1].Curves[1].KeyStride == 3);
     CHECK(!lib2Ptr->Clips[1].Curves[1].Static);
     CHECK(lib2Ptr->Clips[1].Curves[1].KeyIndex == 0);
     CHECK_CLOSE(lib2Ptr->Clips[1].Curves[1].StaticValue[0], 8.0f, 0.001f);
@@ -199,7 +199,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib2Ptr->Clips[1].Curves[1].StaticValue[2], 6.0f, 0.001f);
     CHECK_CLOSE(lib2Ptr->Clips[1].Curves[1].StaticValue[3], 5.0f, 0.001f);
     CHECK(lib2Ptr->Clips[1].Curves[2].Format == AnimCurveFormat::Float4);
-    CHECK(lib2Ptr->Clips[1].Curves[2].Stride == 0);
+    CHECK(lib2Ptr->Clips[1].Curves[2].KeyStride == 0);
     CHECK(lib2Ptr->Clips[1].Curves[2].Static);
     CHECK(lib2Ptr->Clips[1].Curves[2].KeyIndex == InvalidIndex);
     CHECK_CLOSE(lib2Ptr->Clips[1].Curves[2].StaticValue[0], 12.0f, 0.001f);

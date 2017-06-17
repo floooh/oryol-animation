@@ -4,6 +4,7 @@
 #include "Pre.h"
 #include "animSequencer.h"
 #include <float.h>
+#include <math.h>
 
 namespace Oryol {
 namespace _priv {
@@ -170,9 +171,141 @@ animSequencer::garbageCollect(double curTime) {
 }
 
 //------------------------------------------------------------------------------
-void
-animSequencer::eval(double curTime, float* sampleBuffer, int numSamples) {
+static float fadeWeight(float w0, float w1, double t, double t0, double t1) {
+    // compute a fade-in or fade-out mixing weight
+    double dt = t1 - t0;
+    if ((dt > -0.000001) || (dt < 0.000001)) {
+        return w0;  // just make sure we don't divide by zero
+    } 
+    float rt = (float) ((t - t0) / (t1 - t0));
+    if (rt < 0.0f) rt = 0.0f;
+    else if (rt > 1.0f) rt = 1.0f;
+    return w0 + rt*(w1-w0);
+}
 
+//------------------------------------------------------------------------------
+static int clampKeyIndex(int keyIndex, int clipNumKeys) {
+    // FIXME: handle clamp vs loop here
+    o_assert_dbg(clipNumKeys > 0);
+    keyIndex %= clipNumKeys;
+    if (keyIndex < 0) {
+        keyIndex += clipNumKeys;
+    }
+    return keyIndex;
+}
+
+//------------------------------------------------------------------------------
+bool
+animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer, int numSamples) {
+
+    // for each item which crosses the current play time...
+    float weightSum = 0.0f;
+    int numProcessedItems = 0;
+    for (const auto& item : this->items) {
+        // if summed weight has reached 1.0 we can stop
+        if (weightSum >= 1.0f) {
+            break;
+        }
+        // skip current item if it isn't valid or doesn't cross the play cursor
+        if (!item.valid || (item.absStartTime > curTime) || (item.absEndTime <= curTime)) {
+            continue;
+        }
+        const AnimClip& clip = lib->Clips[item.clipIndex];
+
+        // compute the mixing weight
+        float weight = item.mixWeight;
+        if (curTime < item.absFadeInTime) {
+            weight = fadeWeight(0.0f, weight, curTime, item.absStartTime, item.absFadeInTime);
+        }
+        else if (curTime > item.absFadeOutTime) {
+            weight = fadeWeight(weight, 0.0f, curTime, item.absFadeOutTime, item.absEndTime);
+        }
+
+        // compute sampling parameters
+        int key0 = 0;
+        int key1 = 0;
+        float keyPos = 0.0f;
+        if (clip.Length > 0) {
+            o_assert_dbg(clip.KeyDuration > 0.0f);
+            const float clipDuration = clip.KeyDuration * clip.Length;
+            const float clipTime = curTime - item.absStartTime;
+            key0 = clampKeyIndex((clipTime / clip.KeyDuration), clip.Length);
+            key1 = clampKeyIndex(key0 + 1, clip.Length);
+            // position between key0 and key1: 0..1
+            keyPos = fmodf(fmodf(clipTime, clipDuration), clip.KeyDuration) / clip.KeyDuration;
+        }
+
+        // only sample, or sample and mix with previous track?
+        const float* src0 = &(clip.Keys[key0 * clip.KeyStride]);
+        const float* src1 = &(clip.Keys[key1 * clip.KeyStride]);
+        float* dst = sampleBuffer;
+        #if ORYOL_DEBUG
+        const float* dstEnd = dst + numSamples;
+        #endif
+        float s0, s1, v0, v1;
+        if (0 == numProcessedItems) {
+            // first processed track, only need to sample, not mix with previous track
+            for (const auto& curve : clip.Curves) {
+                const int num = curve.NumValues;
+                if (curve.Static) {
+                    if (num >= 1) *dst++ = curve.StaticValue[0];
+                    if (num >= 2) *dst++ = curve.StaticValue[1];
+                    if (num >= 3) *dst++ = curve.StaticValue[2];
+                    if (num >= 4) *dst++ = curve.StaticValue[3];
+                }
+                else {
+                    // NOTE: simply use linear interpolation for quaternions,
+                    // just assume they are close together
+                    if (num >= 1) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
+                    if (num >= 2) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
+                    if (num >= 3) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
+                    if (num >= 4) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
+                }
+            }
+        }
+        else {
+            // evaluate track and mix with previous sampling+mixing result
+            // FIXME: may need to do proper quaternion slerp when mixing
+            // rotation curves
+            for (const auto& curve : clip.Curves) {
+                const int num = curve.NumValues;
+                if (curve.Static) {
+                    if (num >= 1) { s0=*dst; s1=curve.StaticValue[0]; *dst++=s0+(s1-s0)*weight; }
+                    if (num >= 2) { s0=*dst; s1=curve.StaticValue[1]; *dst++=s0+(s1-s0)*weight; }
+                    if (num >= 3) { s0=*dst; s1=curve.StaticValue[2]; *dst++=s0+(s1-s0)*weight; }
+                    if (num >= 4) { s0=*dst; s1=curve.StaticValue[2]; *dst++=s0+(s1-s0)*weight; }
+                }
+                else {
+                    if (num >= 1) {
+                        v0 = *src0++; v1 = *src1++;
+                        s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
+                        *dst++ = s0 + (s1 - s0) * weight;
+                    }
+                    if (num >= 2) {
+                        v0 = *src0++; v1 = *src1++;
+                        s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
+                        *dst++ = s0 + (s1 - s0) * weight;
+                    }
+                    if (num >= 3) {
+                        v0 = *src0++; v1 = *src1++;
+                        s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
+                        *dst++ = s0 + (s1 - s0) * weight;
+                    }
+                    if (num >= 4) {
+                        v0 = *src0++; v1 = *src1++;
+                        s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
+                        *dst++ = s0 + (s1 - s0) * weight;
+                    }
+                }
+            }
+        }
+        o_assert_dbg(dst == dstEnd);
+        o_assert_dbg(src0 == (&(clip.Keys[key0 * clip.KeyStride]) + clip.KeyStride));
+        o_assert_dbg(src1 == (&(clip.Keys[key1 * clip.KeyStride]) + clip.KeyStride));
+
+        weightSum += weight;
+    }
+    return numProcessedItems > 0;
 }
 
 } // namespace _priv

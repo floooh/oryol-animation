@@ -22,8 +22,6 @@ public:
     static bool IsValid();
     /// get the original AnimSetup object
     static const struct AnimSetup& AnimSetup();
-    /// evaluate all active animations
-    static void Update(float frameDurationInSeconds);
 
     /// generate new resource label and push on label stack
     static ResourceLabel PushLabel();
@@ -53,12 +51,12 @@ public:
     /// access a skeleton
     static const AnimSkeleton& Skeleton(const Id& skelId);
 
-    /// enable an animation instance
-    static void EnableInstance(const Id& instId);
-    /// disable an animation instance (don't evaluate during Update)
-    static void DisableInstance(const Id& instId);
-    /// return true if an animation instance is enabled
-    static bool IsInstanceEnabed(const Id& instId);
+    /// begin new frame, clears all active instances
+    static void NewFrame();
+    /// add an active instance for the current frame
+    static bool AddActiveInstance(const Id& instId);
+    /// evaluate all active animation instances
+    static void Evaluate(double frameDurationInSeconds);
 
     /// enqueue an animation job, return job id
     static AnimJobId Play(const Id& instId, const AnimJob& job);

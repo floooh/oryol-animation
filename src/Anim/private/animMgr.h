@@ -59,19 +59,42 @@ public:
     /// write animition library keys
     void writeKeys(AnimLibrary* lib, const uint8_t* ptr, int numBytes);
 
+    /// begin a new frame, resets the active instances
+    void newFrame();
+    /// add an active instance for the current frame
+    bool addActiveInstance(animInstance* inst);
+    /// evaluate all active instances, and reset active instance array
+    void evaluate(double frameDurationInSeconds);
+
+    /// start an animation on an instance (active or inactive)
+    AnimJobId play(animInstance* inst, const AnimJob& job);
+    /// stop a specific anim job
+    void stop(animInstance* inst, AnimJobId jobId, bool allowFadeOut);
+    /// stop all anim jobs on a track
+    void stopTrack(animInstance* inst, int trackIndex, bool allowFadeOut);
+    /// stop all anim jobs
+    void stopAll(animInstance* inst, bool allowFadeOut);
+
     static const Id::TypeT resTypeLib = 1;
     static const Id::TypeT resTypeSkeleton = 2;
     static const Id::TypeT resTypeInstance = 3;
 
     bool isValid = false;
+    bool inFrame = false;
+    double curTime = 0.0;
+    uint32_t curAnimJobId = 0;
     ResourceContainerBase resContainer;
     ResourcePool<AnimLibrary> libPool;
     ResourcePool<AnimSkeleton> skelPool;
+    ResourcePool<animInstance> instPool;
     Array<AnimClip> clipPool;
     Array<AnimCurve> curvePool;
     Array<glm::mat4> matrixPool;
+    Array<animInstance*> activeInstances;
     int numKeys = 0;
     Slice<float> keys;
+    int numSamples = 0;
+    Slice<float> samples;
     float* valuePool = nullptr;
 };
 

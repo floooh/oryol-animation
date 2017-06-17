@@ -8,6 +8,8 @@
 
 namespace Oryol {
 
+using namespace _priv;
+
 namespace {
     struct _state {
         struct AnimSetup animSetup;
@@ -76,6 +78,13 @@ Anim::Create(const AnimSkeletonSetup& setup) {
 }
 
 //------------------------------------------------------------------------------
+template<> Id
+Anim::Create(const AnimInstanceSetup& setup) {
+    o_assert_dbg(IsValid());
+    return state->mgr.createInstance(setup);
+}
+
+//------------------------------------------------------------------------------
 Id
 Anim::Lookup(const Locator& name) {
     o_assert_dbg(IsValid());
@@ -141,6 +150,76 @@ Anim::Skeleton(const Id& skelId) {
     else {
         static AnimSkeleton dummySkel;
         return dummySkel;
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+Anim::NewFrame() {
+    o_assert_dbg(IsValid());
+    state->mgr.newFrame();
+}
+
+//------------------------------------------------------------------------------
+bool
+Anim::AddActiveInstance(const Id& instId) {
+    o_assert_dbg(IsValid());
+    animInstance* inst = state->mgr.lookupInstance(instId);
+    if (inst) {
+        return state->mgr.addActiveInstance(inst);
+    }
+    else {
+        return false;
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+Anim::Evaluate(double frameDurationInSeconds) {
+    o_assert_dbg(IsValid());
+    state->mgr.evaluate(frameDurationInSeconds);
+}
+
+//------------------------------------------------------------------------------
+AnimJobId
+Anim::Play(const Id& instId, const AnimJob& job) {
+    o_assert_dbg(IsValid());
+    animInstance* inst = state->mgr.lookupInstance(instId);
+    if (inst) {
+        return state->mgr.play(inst, job);
+    }
+    else {
+        return InvalidAnimJobId;
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+Anim::Stop(const Id& instId, AnimJobId jobId, bool allowFadeOut) {
+    o_assert_dbg(IsValid());
+    animInstance* inst = state->mgr.lookupInstance(instId);
+    if (inst) {
+        state->mgr.stop(inst, jobId, allowFadeOut);
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+Anim::StopTrack(const Id& instId, int trackIndex, bool allowFadeOut) {
+    o_assert_dbg(IsValid());
+    animInstance* inst = state->mgr.lookupInstance(instId);
+    if (inst) {
+        state->mgr.stopTrack(inst, trackIndex, allowFadeOut);
+    }
+}
+
+//------------------------------------------------------------------------------
+void
+Anim::StopAll(const Id& instId, bool allowFadeOut) {
+    o_assert_dbg(IsValid());
+    animInstance* inst = state->mgr.lookupInstance(instId);
+    if (inst) {
+        state->mgr.stopAll(inst, allowFadeOut);
     }
 }
 
