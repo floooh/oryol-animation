@@ -50,6 +50,10 @@ struct AnimSetup {
     int SamplePoolCapacity = 4 * 1024 * 1024;
     /// max number of the skeleton matrix pool (2 matrices per bone)
     int MatrixPoolCapacity = 1024;
+    /// skinning-matrix table width in number of vec4's
+    int SkinMatrixTableWidth = 1024;
+    /// skinning-matrix table height
+    int SkinMatrixTableHeight = 64;
     /// initial resource label stack capacity
     int ResourceLabelStackCapacity = 256;
     /// initial resource registry capacity
@@ -276,9 +280,9 @@ struct AnimLibrary : public ResourceBase {
     void clear() {
         Name.Clear();
         SampleStride = 0;
-        Clips = Slice<AnimClip>();
-        Curves = Slice<AnimCurve>();
-        Keys = Slice<float>();
+        Clips.Reset();
+        Curves.Reset();
+        Keys.Reset();
         ClipIndexMap.Clear();
     };
 };
@@ -307,9 +311,9 @@ struct AnimSkeleton : public ResourceBase {
     void clear() {
         Name.Clear();
         NumBones = 0;
-        BindPose = Slice<glm::mat4>();
-        InvBindPose = Slice<glm::mat4>();
-        Matrices = Slice<glm::mat4>();
+        BindPose.Reset();
+        InvBindPose.Reset();
+        Matrices.Reset();
     };
 };
 

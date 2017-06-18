@@ -236,8 +236,8 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
         }
 
         // only sample, or sample and mix with previous track?
-        const float* src0 = &(clip.Keys[key0 * clip.KeyStride]);
-        const float* src1 = &(clip.Keys[key1 * clip.KeyStride]);
+        const float* src0 = clip.Keys.Empty() ? nullptr : &(clip.Keys[key0 * clip.KeyStride]);
+        const float* src1 = clip.Keys.Empty() ? nullptr : &(clip.Keys[key1 * clip.KeyStride]);
         float* dst = sampleBuffer;
         #if ORYOL_DEBUG
         const float* dstEnd = dst + numSamples;
@@ -256,6 +256,7 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
                 else {
                     // NOTE: simply use linear interpolation for quaternions,
                     // just assume they are close together
+                    o_assert_dbg(src0 && src1);
                     if (num >= 1) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
                     if (num >= 2) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
                     if (num >= 3) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
@@ -276,6 +277,7 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
                     if (num >= 4) { s0=*dst; s1=curve.StaticValue[2]; *dst++=s0+(s1-s0)*weight; }
                 }
                 else {
+                    o_assert_dbg(src0 && src1);
                     if (num >= 1) {
                         v0 = *src0++; v1 = *src1++;
                         s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
@@ -300,9 +302,12 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
             }
         }
         o_assert_dbg(dst == dstEnd);
-        o_assert_dbg(src0 == (&(clip.Keys[key0 * clip.KeyStride]) + clip.KeyStride));
-        o_assert_dbg(src1 == (&(clip.Keys[key1 * clip.KeyStride]) + clip.KeyStride));
-
+        #if ORYOL_DEBUG
+        if (src0 && src1) {
+            o_assert_dbg(src0 == (&(clip.Keys[key0 * clip.KeyStride]) + clip.KeyStride));
+            o_assert_dbg(src1 == (&(clip.Keys[key1 * clip.KeyStride]) + clip.KeyStride));
+        }
+        #endif
         weightSum += weight;
     }
     return numProcessedItems > 0;

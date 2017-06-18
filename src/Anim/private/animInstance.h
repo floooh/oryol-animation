@@ -33,8 +33,8 @@ public:
     void clear() {
         library = nullptr;
         skeleton = nullptr;
-        samples = Slice<float>();
-        skinMatrices = Slice<float>();
+        samples.Reset();
+        skinMatrices.Reset();
     }
 };
 

@@ -75,10 +75,14 @@ public:
     /// stop all anim jobs
     void stopAll(animInstance* inst, bool allowFadeOut);
 
+    /// generate the skinning matrices for animInstance
+    void genSkinMatrices(animInstance* inst);
+
     static const Id::TypeT resTypeLib = 1;
     static const Id::TypeT resTypeSkeleton = 2;
     static const Id::TypeT resTypeInstance = 3;
 
+    AnimSetup animSetup;
     bool isValid = false;
     bool inFrame = false;
     double curTime = 0.0;
@@ -96,6 +100,11 @@ public:
     int numSamples = 0;
     Slice<float> samples;
     float* valuePool = nullptr;
+    int curSkinMatrixTableX = 0;
+    int curSkinMatrixTableY = 0;
+    int skinMatrixTableStride = 0;  // in number of floats
+    Slice<float> skinMatrixTable;
+    float* skinMatrixPool = nullptr;
 };
 
 } // namespace _priv

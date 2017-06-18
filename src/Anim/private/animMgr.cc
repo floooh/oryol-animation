@@ -19,6 +19,7 @@ void
 animMgr::setup(const AnimSetup& setup) {
     o_assert_dbg(!this->isValid);
 
+    this->animSetup = setup;
     this->isValid = true;
     this->resContainer.Setup(setup.ResourceLabelStackCapacity, setup.ResourceRegistryCapacity);
     this->libPool.Setup(resTypeLib, setup.MaxNumLibs);
@@ -36,6 +37,11 @@ animMgr::setup(const AnimSetup& setup) {
     this->valuePool = (float*) Memory::Alloc(numValues * sizeof(float));
     this->keys = Slice<float>(this->valuePool, numValues, 0, setup.KeyPoolCapacity);
     this->samples = Slice<float>(this->valuePool, numValues, setup.KeyPoolCapacity, setup.SamplePoolCapacity);
+    this->skinMatrixTableStride = setup.SkinMatrixTableWidth * 4;
+    const int skinMatrixPoolNumFloats = this->skinMatrixTableStride * setup.SkinMatrixTableHeight;
+    const int skinMatrixPoolSize = skinMatrixPoolNumFloats * sizeof(float);
+    this->skinMatrixPool = (float*) Memory::Alloc(skinMatrixPoolSize);
+    this->skinMatrixTable = Slice<float>(this->skinMatrixPool, skinMatrixPoolNumFloats);
 }
 
 //------------------------------------------------------------------------------
@@ -43,6 +49,7 @@ void
 animMgr::discard() {
     o_assert_dbg(this->isValid);
     o_assert_dbg(this->valuePool);
+    o_assert_dbg(this->skinMatrixPool);
 
     this->destroy(ResourceLabel::All);
     this->resContainer.Discard();
@@ -53,8 +60,11 @@ animMgr::discard() {
     o_assert_dbg(this->curvePool.Empty());
     o_assert_dbg(this->matrixPool.Empty());
     this->activeInstances.Clear();
-    this->keys = Slice<float>();
-    this->samples = Slice<float>();
+    this->keys.Reset();
+    this->samples.Reset();
+    this->skinMatrixTable.Reset();
+    Memory::Free(this->skinMatrixPool);
+    this->skinMatrixPool = nullptr;
     Memory::Free(this->valuePool);
     this->valuePool = nullptr;
     this->isValid = false;
@@ -396,11 +406,13 @@ void
 animMgr::newFrame() {
     o_assert_dbg(!this->inFrame);
     for (animInstance* inst : this->activeInstances) {
-        inst->samples = Slice<float>();
-        inst->skinMatrices = Slice<float>();
+        inst->samples.Reset();
+        inst->skinMatrices.Reset();
     }
     this->activeInstances.Clear();
     this->numSamples = 0;
+    this->curSkinMatrixTableX = 0;
+    this->curSkinMatrixTableY = 0;
     this->inFrame = true;
 }
 
@@ -419,11 +431,39 @@ animMgr::addActiveInstance(animInstance* inst) {
         // no more room in samples pool
         return false;
     }
-
+    if (inst->skeleton) {
+        if (((this->curSkinMatrixTableX + (inst->skeleton->NumBones*3)) > this->animSetup.SkinMatrixTableWidth) &&
+            ((this->curSkinMatrixTableY + 1) > this->animSetup.SkinMatrixTableHeight))
+        {
+            // not enough room in the skin matrix table
+            return false;
+        }
+    }
     this->activeInstances.Add(inst);
+
+    // assign the samples slice
     inst->samples = this->samples.MakeSlice(this->numSamples, inst->library->SampleStride);
     this->numSamples += inst->library->SampleStride;
 
+    // assign the skin matrix slice
+    if (inst->skeleton) {
+        // each skeleton bones in the skin matrix table takes up 4*3 floats for a
+        // transposed 4x3 matrix:
+        //
+        // |x0 x1 x2 x3|y0 y1 y2 y3|z0 z1 z2 z3|
+        //
+        // each "pixel" in the skin matrix table is 4 floats
+        //
+        if ((this->curSkinMatrixTableX + (inst->skeleton->NumBones*3)) > this->animSetup.SkinMatrixTableWidth) {
+            // doesn't fit into current skin matrix table row, start a new row
+            this->curSkinMatrixTableX = 0;
+            this->curSkinMatrixTableY++;
+        }
+        // one 'pixel' in the skin matrix table is a vec4
+        const int offset = this->curSkinMatrixTableY*this->skinMatrixTableStride + this->curSkinMatrixTableX * 4;
+        inst->skinMatrices = this->skinMatrixTable.MakeSlice(offset, inst->skeleton->NumBones * 3 * 4);
+        this->curSkinMatrixTableX += inst->skeleton->NumBones * 3;
+    }
     return true;
 }
 
@@ -431,12 +471,26 @@ animMgr::addActiveInstance(animInstance* inst) {
 void
 animMgr::evaluate(double frameDur) {
     o_assert_dbg(this->inFrame);
+    // first evaluate all active animations
     for (animInstance* inst : this->activeInstances) {
         inst->sequencer.garbageCollect(this->curTime);
         inst->sequencer.eval(inst->library, this->curTime, inst->samples.begin(), inst->samples.Size());
     }
+    // compute the skinning matrices for all active instances
+    for (animInstance* inst : this->activeInstances) {
+        if (inst->skeleton) {
+            this->genSkinMatrices(inst);
+        }
+    }
     this->curTime += frameDur;
     this->inFrame = false;
+}
+
+//------------------------------------------------------------------------------
+void
+animMgr::genSkinMatrices(animInstance* inst) {
+    o_assert_dbg(inst && inst->skeleton);
+
 }
 
 //------------------------------------------------------------------------------
