@@ -181,6 +181,20 @@ Anim::Evaluate(double frameDurationInSeconds) {
 }
 
 //------------------------------------------------------------------------------
+const Slice<float>&
+Anim::Samples(const Id& instId) {
+    o_assert_dbg(IsValid());
+    animInstance* inst = state->mgr.lookupInstance(instId);
+    if (inst) {
+        return inst->samples;
+    }
+    else {
+        static Slice<float> dummySlice;
+        return dummySlice;
+    }
+}
+
+//------------------------------------------------------------------------------
 AnimJobId
 Anim::Play(const Id& instId, const AnimJob& job) {
     o_assert_dbg(IsValid());

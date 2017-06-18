@@ -57,6 +57,8 @@ public:
     static bool AddActiveInstance(const Id& instId);
     /// evaluate all active animation instances
     static void Evaluate(double frameDurationInSeconds);
+    /// access to current samples of an active anim instance (valid after Anim::Evaluate())
+    static const Slice<float>& Samples(const Id& instId);
 
     /// enqueue an animation job, return job id
     static AnimJobId Play(const Id& instId, const AnimJob& job);

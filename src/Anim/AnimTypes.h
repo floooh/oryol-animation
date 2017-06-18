@@ -4,6 +4,7 @@
 #include "Core/String/StringAtom.h"
 #include "Core/Containers/Array.h"
 #include "Core/Containers/StaticArray.h"
+#include "Core/Containers/InlineArray.h"
 #include "Core/Containers/Map.h"
 #include "Resource/ResourceBase.h"
 #include <glm/vec4.hpp>
@@ -20,6 +21,8 @@ namespace Oryol {
 struct AnimConfig {
     /// max number of bones in a skeleton
     static const int MaxNumSkeletonBones = 256;
+    /// max number of curves in a clip
+    static const int MaxNumCurvesInClip = MaxNumSkeletonBones * 3;
 };
 
 //------------------------------------------------------------------------------
@@ -266,6 +269,8 @@ struct AnimLibrary : public ResourceBase {
     Slice<float> Keys;
     /// map clip names to clip indices
     Map<StringAtom, int> ClipIndexMap;
+    /// the curve layout (all clips in the library have the same layout)
+    InlineArray<AnimCurveFormat::Enum, AnimConfig::MaxNumCurvesInClip> CurveLayout;
 
     /// clear the object
     void clear() {

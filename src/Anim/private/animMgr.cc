@@ -129,6 +129,9 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     AnimLibrary& lib = this->libPool.Assign(resId, ResourceState::Setup);
     lib.Name = libSetup.Name;
     lib.SampleStride = 0;
+    for (AnimCurveFormat::Enum fmt : libSetup.CurveLayout) {
+        lib.CurveLayout.Add(fmt);
+    }
     for (auto fmt : libSetup.CurveLayout) {
         lib.SampleStride += AnimCurveFormat::Stride(fmt);
     }
