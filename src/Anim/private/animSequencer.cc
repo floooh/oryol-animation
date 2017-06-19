@@ -228,8 +228,8 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
         if (clip.Length > 0) {
             o_assert_dbg(clip.KeyDuration > 0.0f);
             const float clipDuration = clip.KeyDuration * clip.Length;
-            const float clipTime = curTime - item.absStartTime;
-            key0 = clampKeyIndex((clipTime / clip.KeyDuration), clip.Length);
+            const float clipTime = float(curTime - item.absStartTime);
+            key0 = clampKeyIndex(int(clipTime / clip.KeyDuration), clip.Length);
             key1 = clampKeyIndex(key0 + 1, clip.Length);
             // position between key0 and key1: 0..1
             keyPos = fmodf(fmodf(clipTime, clipDuration), clip.KeyDuration) / clip.KeyDuration;
