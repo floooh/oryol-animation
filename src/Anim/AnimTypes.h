@@ -351,4 +351,29 @@ struct AnimJob {
     float FadeOut = 0.0f;
 };
 
+//------------------------------------------------------------------------------
+/**
+    @class Oryol::AnimSkinMatrixInfo
+    @ingroup Anim
+    @brief the evaluated skinning matrix data
+    
+    This contains the evaluated skin-matrix information for all
+    active AnimInstances in the current frame. The per-instance
+    items are in the same order how active AnimInstances had
+    been added, but only contains AnimInstances with skeletons.
+*/
+struct AnimSkinMatrixInfo {
+    /// pointer to the skin-matrix table
+    const float* SkinMatrixTable = nullptr;
+    /// size of valid information in the skin matrix table in bytes
+    int SkinMatrixTableByteSize = 0;
+    /// per-instance information
+    struct InstanceInfo {
+        Id Instance;
+        glm::vec4 ShaderInfo;   // x: u texcoord, y: v texcoord, z: 1.0/texwidth
+    };
+    /// one entry per active anim instance
+    Array<InstanceInfo> InstanceInfos;
+};
+
 } // namespace Oryol

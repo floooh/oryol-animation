@@ -5,6 +5,7 @@
 #include "animMgr.h"
 #include "Core/Memory/Memory.h"
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 namespace Oryol {
 namespace _priv {
@@ -33,6 +34,7 @@ animMgr::setup(const AnimSetup& setup) {
     this->matrixPool.Reserve(setup.MatrixPoolCapacity);
     this->activeInstances.SetAllocStrategy(0, 0);
     this->activeInstances.Reserve(setup.MaxNumActiveInstances);
+    this->skinMatrixInfo.InstanceInfos.Reserve(setup.MaxNumActiveInstances);
     const int numValues = setup.KeyPoolCapacity + setup.SamplePoolCapacity;
     this->valuePool = (float*) Memory::Alloc(numValues * sizeof(float));
     this->keys = Slice<float>(this->valuePool, numValues, 0, setup.KeyPoolCapacity);
@@ -41,7 +43,9 @@ animMgr::setup(const AnimSetup& setup) {
     const int skinMatrixPoolNumFloats = this->skinMatrixTableStride * setup.SkinMatrixTableHeight;
     const int skinMatrixPoolSize = skinMatrixPoolNumFloats * sizeof(float);
     this->skinMatrixPool = (float*) Memory::Alloc(skinMatrixPoolSize);
+    Memory::Clear(this->skinMatrixPool, skinMatrixPoolSize);
     this->skinMatrixTable = Slice<float>(this->skinMatrixPool, skinMatrixPoolNumFloats);
+    this->skinMatrixInfo.SkinMatrixTable = this->skinMatrixTable.begin();
 }
 
 //------------------------------------------------------------------------------
@@ -414,6 +418,8 @@ animMgr::newFrame() {
     this->curSkinMatrixTableX = 0;
     this->curSkinMatrixTableY = 0;
     this->inFrame = true;
+    this->skinMatrixInfo.SkinMatrixTableByteSize = 0;
+    this->skinMatrixInfo.InstanceInfos.Clear();
 }
 
 //------------------------------------------------------------------------------
@@ -462,6 +468,18 @@ animMgr::addActiveInstance(animInstance* inst) {
         // one 'pixel' in the skin matrix table is a vec4
         const int offset = this->curSkinMatrixTableY*this->skinMatrixTableStride + this->curSkinMatrixTableX * 4;
         inst->skinMatrices = this->skinMatrixTable.MakeSlice(offset, inst->skeleton->NumBones * 3 * 4);
+
+        // update skinMatrixInfo
+        this->skinMatrixInfo.SkinMatrixTableByteSize = (this->curSkinMatrixTableY+1)*this->skinMatrixTableStride * 4;
+        auto& info = this->skinMatrixInfo.InstanceInfos.Add();
+        info.Instance = inst->Id;
+        const float halfPixelX = 0.5f / float(this->animSetup.SkinMatrixTableWidth);
+        const float halfPixelY = 0.5f / float(this->animSetup.SkinMatrixTableHeight);
+        info.ShaderInfo.x = (float(this->curSkinMatrixTableX)/float(this->animSetup.SkinMatrixTableWidth)) + halfPixelX;
+        info.ShaderInfo.y = (float(this->curSkinMatrixTableY)/float(this->animSetup.SkinMatrixTableHeight)) + halfPixelY;
+        info.ShaderInfo.z = float(this->animSetup.SkinMatrixTableWidth);
+
+        // advance to next skin matrix table position
         this->curSkinMatrixTableX += inst->skeleton->NumBones * 3;
     }
     return true;
@@ -490,7 +508,48 @@ animMgr::evaluate(double frameDur) {
 void
 animMgr::genSkinMatrices(animInstance* inst) {
     o_assert_dbg(inst && inst->skeleton);
+    // FIXME: unwrap the glm math code
+    glm::vec3 t, s;
+    glm::quat r;
+    glm::mat4 ident, tm, rm, sm, m, skin_m;
+    const auto& parentIndices = inst->skeleton->ParentIndices;
+    const auto& invBindPose = inst->skeleton->InvBindPose;
+    const auto& smp = inst->samples;
+    for (int boneIndex=0, i=0, j=0; boneIndex<inst->skeleton->NumBones; boneIndex++) {
 
+        // compute pose matrix from animated translation, rotation, scaling
+        t.x=smp[i++]; t.y=smp[i++]; t.z=smp[i++];
+        r.x=smp[i++]; r.y=smp[i++]; r.z=smp[i++]; r.w=smp[i++];
+        s.x=smp[i++]; s.y=smp[i++]; s.z=smp[i++];
+        tm = glm::translate(ident, t);
+        rm = glm::mat4_cast(r);
+        sm = glm::scale(ident, s);
+        m = tm * rm * sm;
+        const int16_t parentIndex = parentIndices[boneIndex];
+        if (-1 != parentIndex) {
+            m = this->poseMatrices[parentIndex] * m;
+        }
+        this->poseMatrices[boneIndex] = m;
+
+        // skin matrix is animated pose matrix multiplied by inverse bind pose matrix
+        skin_m = m * invBindPose[boneIndex];
+
+        // write xxxz, yyyy, zzzz
+        inst->skinMatrices[j++] = skin_m[0][0]; // xxxx
+        inst->skinMatrices[j++] = skin_m[1][0];
+        inst->skinMatrices[j++] = skin_m[2][0];
+        inst->skinMatrices[j++] = skin_m[3][0];
+
+        inst->skinMatrices[j++] = skin_m[0][1]; // yyyy
+        inst->skinMatrices[j++] = skin_m[1][1];
+        inst->skinMatrices[j++] = skin_m[2][1];
+        inst->skinMatrices[j++] = skin_m[3][1];
+
+        inst->skinMatrices[j++] = skin_m[0][2]; // zzzz
+        inst->skinMatrices[j++] = skin_m[1][2];
+        inst->skinMatrices[j++] = skin_m[2][2];
+        inst->skinMatrices[j++] = skin_m[3][2];
+    }
 }
 
 //------------------------------------------------------------------------------

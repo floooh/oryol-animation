@@ -59,6 +59,8 @@ public:
     static void Evaluate(double frameDurationInSeconds);
     /// access to current samples of an active anim instance (valid after Anim::Evaluate())
     static const Slice<float>& Samples(const Id& instId);
+    /// access to evaluated skeleton skinning matrix info
+    static const AnimSkinMatrixInfo& SkinMatrixInfo();
 
     /// enqueue an animation job, return job id
     static AnimJobId Play(const Id& instId, const AnimJob& job);

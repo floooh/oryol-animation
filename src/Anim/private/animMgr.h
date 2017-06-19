@@ -95,6 +95,7 @@ public:
     Array<AnimCurve> curvePool;
     Array<glm::mat4> matrixPool;
     Array<animInstance*> activeInstances;
+    AnimSkinMatrixInfo skinMatrixInfo;
     int numKeys = 0;
     Slice<float> keys;
     int numSamples = 0;
@@ -105,6 +106,7 @@ public:
     int skinMatrixTableStride = 0;  // in number of floats
     Slice<float> skinMatrixTable;
     float* skinMatrixPool = nullptr;
+    StaticArray<glm::mat4, AnimConfig::MaxNumSkeletonBones> poseMatrices;   // temp evaluation store for pose matrices
 };
 
 } // namespace _priv

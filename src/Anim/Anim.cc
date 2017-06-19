@@ -195,6 +195,13 @@ Anim::Samples(const Id& instId) {
 }
 
 //------------------------------------------------------------------------------
+const AnimSkinMatrixInfo&
+Anim::SkinMatrixInfo() {
+    o_assert_dbg(IsValid());
+    return state->mgr.skinMatrixInfo;
+}
+
+//------------------------------------------------------------------------------
 AnimJobId
 Anim::Play(const Id& instId, const AnimJob& job) {
     o_assert_dbg(IsValid());
