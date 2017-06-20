@@ -174,7 +174,7 @@ animSequencer::garbageCollect(double curTime) {
 static float fadeWeight(float w0, float w1, double t, double t0, double t1) {
     // compute a fade-in or fade-out mixing weight
     double dt = t1 - t0;
-    if ((dt > -0.000001) || (dt < 0.000001)) {
+    if ((dt > -0.000001) && (dt < 0.000001)) {
         return w0;  // just make sure we don't divide by zero
     } 
     float rt = (float) ((t - t0) / (t1 - t0));
