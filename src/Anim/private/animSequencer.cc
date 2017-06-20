@@ -199,13 +199,11 @@ bool
 animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer, int numSamples) {
 
     // for each item which crosses the current play time...
+    // FIXME: currently items are evaluated even if they are culled
+    // completely by higher priority items
     float weightSum = 0.0f;
     int numProcessedItems = 0;
     for (const auto& item : this->items) {
-        // if summed weight has reached 1.0 we can stop
-        if (weightSum >= 1.0f) {
-            break;
-        }
         // skip current item if it isn't valid or doesn't cross the play cursor
         if (!item.valid || (item.absStartTime > curTime) || (item.absEndTime <= curTime)) {
             continue;
@@ -309,6 +307,7 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
         }
         #endif
         weightSum += weight;
+        numProcessedItems++;
     }
     return numProcessedItems > 0;
 }

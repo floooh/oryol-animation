@@ -335,7 +335,7 @@ static const AnimJobId InvalidAnimJobId = 0xFFFFFFFF;
 struct AnimJob {
     /// index of anim clip to play
     int ClipIndex = 0;
-    /// the track index for priority blending (lower tracks have higher priority)
+    /// the track index for priority blending (higher tracks have higher priority)
     int TrackIndex = 0;
     /// overall weight when mixing with lower-priority track
     float MixWeight = 1.0f; 
