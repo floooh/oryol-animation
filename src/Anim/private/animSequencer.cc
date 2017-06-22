@@ -201,7 +201,6 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
     // for each item which crosses the current play time...
     // FIXME: currently items are evaluated even if they are culled
     // completely by higher priority items
-    float weightSum = 0.0f;
     int numProcessedItems = 0;
     for (const auto& item : this->items) {
         // skip current item if it isn't valid or doesn't cross the play cursor
@@ -210,27 +209,17 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
         }
         const AnimClip& clip = lib->Clips[item.clipIndex];
 
-        // compute the mixing weight
-        float weight = item.mixWeight;
-        if (curTime < item.absFadeInTime) {
-            weight = fadeWeight(0.0f, weight, curTime, item.absStartTime, item.absFadeInTime);
-        }
-        else if (curTime > item.absFadeOutTime) {
-            weight = fadeWeight(weight, 0.0f, curTime, item.absFadeOutTime, item.absEndTime);
-        }
-
         // compute sampling parameters
         int key0 = 0;
         int key1 = 0;
         float keyPos = 0.0f;
         if (clip.Length > 0) {
             o_assert_dbg(clip.KeyDuration > 0.0f);
-            const float clipDuration = clip.KeyDuration * clip.Length;
             const float clipTime = float(curTime - item.absStartTime);
-            key0 = clampKeyIndex(int(clipTime / clip.KeyDuration), clip.Length);
+            key0 = int(clipTime / clip.KeyDuration);
+            keyPos = (clipTime - (key0 * clip.KeyDuration)) / clip.KeyDuration;
+            key0 = clampKeyIndex(key0, clip.Length);
             key1 = clampKeyIndex(key0 + 1, clip.Length);
-            // position between key0 and key1: 0..1
-            keyPos = fmodf(fmodf(clipTime, clipDuration), clip.KeyDuration) / clip.KeyDuration;
         }
 
         // only sample, or sample and mix with previous track?
@@ -266,6 +255,13 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
             // evaluate track and mix with previous sampling+mixing result
             // FIXME: may need to do proper quaternion slerp when mixing
             // rotation curves
+            float weight = item.mixWeight;
+            if (curTime < item.absFadeInTime) {
+                weight = fadeWeight(0.0f, weight, curTime, item.absStartTime, item.absFadeInTime);
+            }
+            else if (curTime > item.absFadeOutTime) {
+                weight = fadeWeight(weight, 0.0f, curTime, item.absFadeOutTime, item.absEndTime);
+            }
             for (const auto& curve : clip.Curves) {
                 const int num = curve.NumValues;
                 if (curve.Static) {
@@ -306,7 +302,6 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
             o_assert_dbg(src1 == (&(clip.Keys[key1 * clip.KeyStride]) + clip.KeyStride));
         }
         #endif
-        weightSum += weight;
         numProcessedItems++;
     }
     return numProcessedItems > 0;
