@@ -509,30 +509,36 @@ void
 animMgr::genSkinMatrices(animInstance* inst) {
     o_assert_dbg(inst && inst->skeleton);
     // FIXME: unwrap the glm math code
-    glm::vec3 t, s;
-    glm::quat r;
-    glm::mat4 ident, tm, rm, sm, m, skin_m;
     const auto& parentIndices = inst->skeleton->ParentIndices;
     const auto& invBindPose = inst->skeleton->InvBindPose;
     const auto& smp = inst->samples;
+    float tx, ty, tz;
+    float sx, sy, sz;
+    float qx, qy, qz, qw, qxx, qyy, qzz, qxz, qxy, qyz, qwx, qwy, qwz;
+    glm::mat4 mx;
+    float* m = &mx[0][0];
     for (int boneIndex=0, i=0, j=0; boneIndex<inst->skeleton->NumBones; boneIndex++) {
 
-        // compute pose matrix from animated translation, rotation, scaling
-        t.x=smp[i++]; t.y=smp[i++]; t.z=smp[i++];
-        r.x=smp[i++]; r.y=smp[i++]; r.z=smp[i++]; r.w=smp[i++];
-        s.x=smp[i++]; s.y=smp[i++]; s.z=smp[i++];
-        tm = glm::translate(ident, t);
-        rm = glm::mat4_cast(r);
-        sm = glm::scale(ident, s);
-        m = tm * rm * sm;
+        // translate, rotate (from quaternion) and scale
+        tx=smp[i++]; ty=smp[i++]; tz=smp[i++];
+        qx=smp[i++]; qy=smp[i++]; qz=smp[i++]; qw=smp[i++];
+        sx=smp[i++]; sy=smp[i++]; sz=smp[i++];
+        qxx=qx*qx; qyy=qy*qy; qzz=qz*qz;
+        qxz=qx*qz; qxy=qx*qy; qyz=qy*qz;
+        qwx=qw*qx; qwy=qw*qy; qwz=qw*qz;
+        m[0]=sx*(1.0f-2.0f*(qyy+qzz)); m[1]=sx*(2.0f*(qxy+qwz)); m[2]=sx*(2.0f*(qxz-qwy));
+        m[4]=sy*(2.0f*(qxy-qwz)); m[5]=sy*(1.0f-2.0f*(qxx+qzz)); m[6]=sy*(2.0f*(qyz+qwx));
+        m[8]=sz*(2.0f*(qxz+qwy)); m[9]=sz*(2.0f*(qyz-qwx)); m[10]=sz*(1.0f-2.0f*(qxx+qyy));
+        m[12]=tx; m[13]=ty; m[14]=tz;
+
         const int16_t parentIndex = parentIndices[boneIndex];
         if (-1 != parentIndex) {
-            m = this->poseMatrices[parentIndex] * m;
+            mx = this->poseMatrices[parentIndex] * mx;
         }
-        this->poseMatrices[boneIndex] = m;
+        this->poseMatrices[boneIndex] = mx;
 
         // skin matrix is animated pose matrix multiplied by inverse bind pose matrix
-        skin_m = m * invBindPose[boneIndex];
+        glm::mat4 skin_m = mx * invBindPose[boneIndex];
 
         // write xxxz, yyyy, zzzz
         inst->skinMatrices[j++] = skin_m[0][0]; // xxxx
@@ -558,7 +564,7 @@ animMgr::play(animInstance* inst, const AnimJob& job) {
     inst->sequencer.garbageCollect(this->curTime);
     AnimJobId jobId = ++this->curAnimJobId;
     const auto& clip = inst->library->Clips[job.ClipIndex];
-    float clipDuration = clip.KeyDuration * clip.Length;
+    double clipDuration = clip.KeyDuration * clip.Length;
     if (inst->sequencer.add(this->curTime, jobId, job, clipDuration)) {
         return jobId;
     }

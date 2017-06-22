@@ -41,7 +41,7 @@ public:
     InlineArray<item, maxItems> items;
 
     /// enqueue a new anim job, return false if queue is full, or job was dropped
-    bool add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration);
+    bool add(double curTime, AnimJobId jobId, const AnimJob& job, double clipDuration);
     /// stop a job, this will just set the end time to the current time
     void stop(double curTime, AnimJobId jobId, bool allowFadeOut);
     /// stop a track, this will set the end time of jobs overlapping curTime, and invalidate future jobs

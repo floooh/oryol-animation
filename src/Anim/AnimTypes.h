@@ -120,7 +120,7 @@ struct AnimClipSetup {
     /// the length of the clip in number of keys
     int Length = 0;
     /// the time duration from one key to next in seconds
-    float KeyDuration = 1.0f / 25.0f;
+    double KeyDuration = 1.0 / 25.0;
     /// a description of each curve in the clip
     Array<AnimCurveSetup> Curves;
 

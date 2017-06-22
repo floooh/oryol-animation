@@ -19,7 +19,7 @@ checkValidateItem(animSequencer::item& item) {
 
 //------------------------------------------------------------------------------
 bool
-animSequencer::add(double curTime, AnimJobId jobId, const AnimJob& job, float clipDuration) {
+animSequencer::add(double curTime, AnimJobId jobId, const AnimJob& job, double clipDuration) {
     if (this->items.Full()) {
         // no more free job slots
         return false;
@@ -215,7 +215,7 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
         float keyPos = 0.0f;
         if (clip.Length > 0) {
             o_assert_dbg(clip.KeyDuration > 0.0f);
-            const float clipTime = float(curTime - item.absStartTime);
+            const double clipTime = curTime - item.absStartTime;
             key0 = int(clipTime / clip.KeyDuration);
             keyPos = (clipTime - (key0 * clip.KeyDuration)) / clip.KeyDuration;
             key0 = clampKeyIndex(key0, clip.Length);
@@ -273,24 +273,24 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
                 else {
                     o_assert_dbg(src0 && src1);
                     if (num >= 1) {
-                        v0 = *src0++; v1 = *src1++;
-                        s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
-                        *dst++ = s0 + (s1 - s0) * weight;
+                        v0=*src0++; v1=*src1++;
+                        s0=*dst; s1=v0+(v1-v0)*keyPos;
+                        *dst++=s0+(s1-s0)*weight;
                     }
                     if (num >= 2) {
-                        v0 = *src0++; v1 = *src1++;
-                        s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
-                        *dst++ = s0 + (s1 - s0) * weight;
+                        v0=*src0++; v1=*src1++;
+                        s0=*dst; s1=v0+(v1-v0)*keyPos;
+                        *dst++=s0+(s1-s0)*weight;
                     }
                     if (num >= 3) {
-                        v0 = *src0++; v1 = *src1++;
-                        s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
-                        *dst++ = s0 + (s1 - s0) * weight;
+                        v0=*src0++; v1=*src1++;
+                        s0=*dst; s1=v0+(v1-v0)*keyPos;
+                        *dst++=s0+(s1-s0)*weight;
                     }
                     if (num >= 4) {
-                        v0 = *src0++; v1 = *src1++;
-                        s0 = *dst; s1 = v0 + (v1 - v0) * keyPos;
-                        *dst++ = s0 + (s1 - s0) * weight;
+                        v0=*src0++; v1=*src1++;
+                        s0=*dst; s1=v0+(v1-v0)*keyPos;
+                        *dst++=s0+(s1-s0)*weight;
                     }
                 }
             }
