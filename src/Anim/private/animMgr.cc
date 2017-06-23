@@ -6,6 +6,7 @@
 #include "Core/Memory/Memory.h"
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <cstring>
 
 namespace Oryol {
 namespace _priv {
@@ -505,56 +506,93 @@ animMgr::evaluate(double frameDur) {
 }
 
 //------------------------------------------------------------------------------
+static void
+mx_mul3x4(const float* m1, const float* m2, float* m) {
+    // assume that last column in both matrices is 0,0,0,1
+    m[0]  = m1[0]*m2[0] + m1[4]*m2[1] + m1[8] *m2[2];
+    m[1]  = m1[1]*m2[0] + m1[5]*m2[1] + m1[9] *m2[2];
+    m[2]  = m1[2]*m2[0] + m1[6]*m2[1] + m1[10]*m2[2];
+    m[3]  = 0.0f;
+    m[4]  = m1[0]*m2[4] + m1[4]*m2[5] + m1[8] *m2[6];
+    m[5]  = m1[1]*m2[4] + m1[5]*m2[5] + m1[9] *m2[6];
+    m[6]  = m1[2]*m2[4] + m1[6]*m2[5] + m1[10]*m2[6];
+    m[7]  = 0.0f;
+    m[8]  = m1[0]*m2[8] + m1[4]*m2[9] + m1[8] *m2[10];
+    m[9]  = m1[1]*m2[8] + m1[5]*m2[9] + m1[9] *m2[10];
+    m[10] = m1[2]*m2[8] + m1[6]*m2[9] + m1[10]*m2[10];
+    m[11] = 0.0f;
+    m[12] = m1[0]*m2[12] + m1[4]*m2[13] + m1[8] *m2[14] + m1[12];
+    m[13] = m1[1]*m2[12] + m1[5]*m2[13] + m1[9] *m2[14] + m1[13];
+    m[14] = m1[2]*m2[12] + m1[6]*m2[13] + m1[10]*m2[14] + m1[14];
+    m[15] = 1.0f;
+}
+
+//------------------------------------------------------------------------------
+static void
+mx_copy(const float* src, float* dst) {
+    std::memcpy(dst, src, 16*sizeof(float));
+}
+
+//------------------------------------------------------------------------------
 void
 animMgr::genSkinMatrices(animInstance* inst) {
     o_assert_dbg(inst && inst->skeleton);
-    // FIXME: unwrap the glm math code
     const auto& parentIndices = inst->skeleton->ParentIndices;
-    const auto& invBindPose = inst->skeleton->InvBindPose;
-    const auto& smp = inst->samples;
-    float tx, ty, tz;
-    float sx, sy, sz;
+    // pointer to skeleton's inverse bind pose matrices
+    const float* invBindPose = &(inst->skeleton->InvBindPose[0][0][0]);
+    // output are transposed 4x3 matrices ready for upload to GPU
+    float* outSkinMatrices = &(inst->skinMatrices[0]);
+    // input samples (result of animation evaluation)
+    const float* smp = &(inst->samples[0]);
+
+    float tx, ty, tz, sx, sy, sz;
     float qx, qy, qz, qw, qxx, qyy, qzz, qxz, qxy, qyz, qwx, qwy, qwz;
-    glm::mat4 mx;
-    float* m = &mx[0][0];
+    float m0[16], m1[16], m2[16];
+    m0[3]=m0[7]=m0[11]=0.0f; m0[15]=1.0f;
     for (int boneIndex=0, i=0, j=0; boneIndex<inst->skeleton->NumBones; boneIndex++) {
 
-        // translate, rotate (from quaternion) and scale
+        // samples bone translate, rotate (quat), scale to matrix
         tx=smp[i++]; ty=smp[i++]; tz=smp[i++];
         qx=smp[i++]; qy=smp[i++]; qz=smp[i++]; qw=smp[i++];
         sx=smp[i++]; sy=smp[i++]; sz=smp[i++];
         qxx=qx*qx; qyy=qy*qy; qzz=qz*qz;
         qxz=qx*qz; qxy=qx*qy; qyz=qy*qz;
         qwx=qw*qx; qwy=qw*qy; qwz=qw*qz;
-        m[0]=sx*(1.0f-2.0f*(qyy+qzz)); m[1]=sx*(2.0f*(qxy+qwz)); m[2]=sx*(2.0f*(qxz-qwy));
-        m[4]=sy*(2.0f*(qxy-qwz)); m[5]=sy*(1.0f-2.0f*(qxx+qzz)); m[6]=sy*(2.0f*(qyz+qwx));
-        m[8]=sz*(2.0f*(qxz+qwy)); m[9]=sz*(2.0f*(qyz-qwx)); m[10]=sz*(1.0f-2.0f*(qxx+qyy));
-        m[12]=tx; m[13]=ty; m[14]=tz;
+        m0[0]=sx*(1.0f-2.0f*(qyy+qzz)); m0[1]=sx*(2.0f*(qxy+qwz));      m0[2]=sx*(2.0f*(qxz-qwy));
+        m0[4]=sy*(2.0f*(qxy-qwz));      m0[5]=sy*(1.0f-2.0f*(qxx+qzz)); m0[6]=sy*(2.0f*(qyz+qwx));
+        m0[8]=sz*(2.0f*(qxz+qwy));      m0[9]=sz*(2.0f*(qyz-qwx));      m0[10]=sz*(1.0f-2.0f*(qxx+qyy));
+        m0[12]=tx;                      m0[13]=ty;                      m0[14]=tz;
 
+        // multiply with parent bone matrix
         const int16_t parentIndex = parentIndices[boneIndex];
+        const float* m;
         if (-1 != parentIndex) {
-            mx = this->poseMatrices[parentIndex] * mx;
+            mx_mul3x4(&this->tmpBoneMatrices[parentIndex][0], m0, m1);
+            m = m1;
         }
-        this->poseMatrices[boneIndex] = mx;
+        else {
+            m = m0;
+        }
+        mx_copy(m, &this->tmpBoneMatrices[boneIndex][0]);
 
-        // skin matrix is animated pose matrix multiplied by inverse bind pose matrix
-        glm::mat4 skin_m = mx * invBindPose[boneIndex];
+        // multiply with inverse bind pose matrix to get skin matrix
+        mx_mul3x4(m, &invBindPose[boneIndex * 16], m2);
 
-        // write xxxz, yyyy, zzzz
-        inst->skinMatrices[j++] = skin_m[0][0]; // xxxx
-        inst->skinMatrices[j++] = skin_m[1][0];
-        inst->skinMatrices[j++] = skin_m[2][0];
-        inst->skinMatrices[j++] = skin_m[3][0];
+        // write transposed skin matrix ready for skinning shader
+        outSkinMatrices[j++] = m2[0]; // xxxx
+        outSkinMatrices[j++] = m2[4];
+        outSkinMatrices[j++] = m2[8];
+        outSkinMatrices[j++] = m2[12];
 
-        inst->skinMatrices[j++] = skin_m[0][1]; // yyyy
-        inst->skinMatrices[j++] = skin_m[1][1];
-        inst->skinMatrices[j++] = skin_m[2][1];
-        inst->skinMatrices[j++] = skin_m[3][1];
+        outSkinMatrices[j++] = m2[1]; // yyyy
+        outSkinMatrices[j++] = m2[5];
+        outSkinMatrices[j++] = m2[9];
+        outSkinMatrices[j++] = m2[13];
 
-        inst->skinMatrices[j++] = skin_m[0][2]; // zzzz
-        inst->skinMatrices[j++] = skin_m[1][2];
-        inst->skinMatrices[j++] = skin_m[2][2];
-        inst->skinMatrices[j++] = skin_m[3][2];
+        outSkinMatrices[j++] = m2[2]; // zzzz
+        outSkinMatrices[j++] = m2[6];
+        outSkinMatrices[j++] = m2[10];
+        outSkinMatrices[j++] = m2[14];
     }
 }
 

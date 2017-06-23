@@ -106,7 +106,7 @@ public:
     int skinMatrixTableStride = 0;  // in number of floats
     Slice<float> skinMatrixTable;
     float* skinMatrixPool = nullptr;
-    StaticArray<glm::mat4, AnimConfig::MaxNumSkeletonBones> poseMatrices;   // temp evaluation store for pose matrices
+    float tmpBoneMatrices[AnimConfig::MaxNumSkeletonBones][16];
 };
 
 } // namespace _priv
