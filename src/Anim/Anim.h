@@ -6,6 +6,7 @@
     @brief animation system facade
 */
 #include "Anim/AnimTypes.h"
+#include "Anim/private/animInstance.h"
 #include "Resource/ResourceLabel.h"
 #include "Resource/Locator.h"
 #include "Core/Time/Duration.h"
@@ -22,6 +23,8 @@ public:
     static bool IsValid();
     /// get the original AnimSetup object
     static const struct AnimSetup& AnimSetup();
+    /// get the animation systems current absolute time
+    static double CurrentTime();
 
     /// generate new resource label and push on label stack
     static ResourceLabel PushLabel();
@@ -70,6 +73,9 @@ public:
     static void StopTrack(const Id& instId, int trackIndex, bool allowFadeOut=true);
     /// stop all jobs
     static void StopAll(const Id& instId, bool allowFadeOut=true);
+
+    /// access to anim instance
+    static const _priv::animInstance& instance(const Id& instId);
 };
 
 } // namespace Oryol

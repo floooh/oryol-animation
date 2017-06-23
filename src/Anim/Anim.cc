@@ -43,6 +43,13 @@ Anim::IsValid() {
 }
 
 //------------------------------------------------------------------------------
+double
+Anim::CurrentTime() {
+    o_assert_dbg(IsValid());
+    return state->mgr.curTime;
+}
+
+//------------------------------------------------------------------------------
 ResourceLabel
 Anim::PushLabel() {
     o_assert_dbg(IsValid());
@@ -241,6 +248,20 @@ Anim::StopAll(const Id& instId, bool allowFadeOut) {
     animInstance* inst = state->mgr.lookupInstance(instId);
     if (inst) {
         state->mgr.stopAll(inst, allowFadeOut);
+    }
+}
+
+//------------------------------------------------------------------------------
+const animInstance&
+Anim::instance(const Id& instId) {
+    o_assert_dbg(IsValid());
+    const animInstance* inst = state->mgr.lookupInstance(instId);
+    if (inst) {
+        return *inst;
+    }
+    else {
+        static animInstance dummyInst;
+        return dummyInst;
     }
 }
 
