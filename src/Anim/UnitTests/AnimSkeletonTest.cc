@@ -24,7 +24,7 @@ TEST(AnimSkeletonTest) {
     glm::mat4 m0 = glm::translate(glm::mat4(), glm::vec3(1.0f, 2.0f, 3.0f));
     glm::mat4 m1 = glm::translate(glm::mat4(), glm::vec3(4.0f, 5.0f, 6.0f));
     AnimSkeletonSetup skelSetup;
-    skelSetup.Name = "test";
+    skelSetup.Locator = "test";
     skelSetup.Bones = {
         { "root", -1, glm::mat4(), glm::mat4() },
         { "spine0", 0, m0, glm::inverse(m0) },
@@ -36,7 +36,7 @@ TEST(AnimSkeletonTest) {
     CHECK(mgr.matrixPool.Size() == 6);
     AnimSkeleton* skel = mgr.lookupSkeleton(skelId);
     CHECK(skel);
-    CHECK(skel->Name == "test");
+    CHECK(skel->Locator.Location() == "test");
 
     mgr.destroy(l1);
 

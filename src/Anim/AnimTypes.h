@@ -7,6 +7,7 @@
 #include "Core/Containers/InlineArray.h"
 #include "Core/Containers/Map.h"
 #include "Resource/ResourceBase.h"
+#include "Resource/Locator.h"
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
 
@@ -112,7 +113,7 @@ struct AnimCurveSetup {
 /**
     @class Oryol::AnimClipSetup
     @ingroup Anim
-    @brief describe an animation clip, part of AnimLibSetup
+    @brief describe an animation clip, part of AnimLibrarySetup
 */
 struct AnimClipSetup {
     /// name of the anim clip (must be unique in library)
@@ -141,8 +142,8 @@ struct AnimClipSetup {
     with the same anim curve layout).
 */
 struct AnimLibrarySetup {
-    /// the name of the anim library
-    StringAtom Name;
+    /// resource locator for sharing
+    class Locator Locator = Locator::NonShared();
     /// number and format of curves (must be identical for all clips)
     Array<AnimCurveFormat::Enum> CurveLayout;
     /// the anim clips in the library
@@ -179,8 +180,8 @@ struct AnimBoneSetup {
     @brief setup params for a character skeleton
 */
 struct AnimSkeletonSetup {
-    /// a name for the skeleton
-    StringAtom Name;
+    /// locator for resource sharing
+    class Locator Locator = Locator::NonShared();
     /// the skeleton bones
     Array<AnimBoneSetup> Bones; 
 };
@@ -261,8 +262,8 @@ struct AnimClip {
     @brief a collection of clips with the same curve layout
 */
 struct AnimLibrary : public ResourceBase {
-    /// name of the library
-    StringAtom Name;
+    /// resource locator (name + sig)
+    class Locator Locator;
     /// stride of per-instance samples in number of floats
     int SampleStride = 0;
     /// access to all clips in the library
@@ -278,7 +279,7 @@ struct AnimLibrary : public ResourceBase {
 
     /// clear the object
     void clear() {
-        Name.Clear();
+        Locator = Locator::NonShared();
         SampleStride = 0;
         Clips.Reset();
         Curves.Reset();
@@ -294,8 +295,8 @@ struct AnimLibrary : public ResourceBase {
     @brief runtime struct for an animation skeleton
 */
 struct AnimSkeleton : public ResourceBase {
-    /// name of the skeleton
-    StringAtom Name;
+    /// resource locator (name + sig)
+    class Locator Locator;
     /// number of bones in the skeleton
     int NumBones = 0;
     /// the bind pose matrices (non-inverse)
@@ -309,7 +310,7 @@ struct AnimSkeleton : public ResourceBase {
 
     /// clear the object
     void clear() {
-        Name.Clear();
+        Locator = Locator::NonShared();
         NumBones = 0;
         BindPose.Reset();
         InvBindPose.Reset();

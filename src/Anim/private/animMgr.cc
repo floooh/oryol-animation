@@ -102,12 +102,12 @@ animMgr::destroy(const ResourceLabel& label) {
 Id
 animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     o_assert_dbg(this->isValid);
-    o_assert_dbg(libSetup.Name.IsValid());
+    o_assert_dbg(libSetup.Locator.HasValidLocation());
     o_assert_dbg(!libSetup.CurveLayout.Empty());
     o_assert_dbg(!libSetup.Clips.Empty());
 
     // check if lib already exists
-    Id resId = this->resContainer.registry.Lookup(libSetup.Name);
+    Id resId = this->resContainer.registry.Lookup(libSetup.Locator);
     if (resId.IsValid()) {
         o_assert_dbg(resId.Type == resTypeLib);
         return resId;
@@ -142,7 +142,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     // create a new lib
     resId = this->libPool.AllocId();
     AnimLibrary& lib = this->libPool.Assign(resId, ResourceState::Setup);
-    lib.Name = libSetup.Name;
+    lib.Locator = libSetup.Locator;
     lib.SampleStride = 0;
     for (AnimCurveFormat::Enum fmt : libSetup.CurveLayout) {
         lib.CurveLayout.Add(fmt);
@@ -199,7 +199,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
         }
     }
 
-    this->resContainer.registry.Add(libSetup.Name, resId, this->resContainer.PeekLabel());
+    this->resContainer.registry.Add(libSetup.Locator, resId, this->resContainer.PeekLabel());
     this->libPool.UpdateState(resId, ResourceState::Valid);
     return resId;
 }
@@ -229,11 +229,11 @@ animMgr::destroyLibrary(const Id& id) {
 Id
 animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
     o_assert_dbg(this->isValid);
-    o_assert_dbg(setup.Name.IsValid());
+    o_assert_dbg(setup.Locator.HasValidLocation());
     o_assert_dbg(!setup.Bones.Empty());
 
     // check if skeleton already exists
-    Id resId = this->resContainer.registry.Lookup(setup.Name);
+    Id resId = this->resContainer.registry.Lookup(setup.Locator);
     if (resId.IsValid()) {
         o_assert_dbg(resId.Type == resTypeSkeleton);
         return resId;
@@ -248,7 +248,7 @@ animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
     // create new skeleton
     resId = this->skelPool.AllocId();
     AnimSkeleton& skel = this->skelPool.Assign(resId, ResourceState::Setup);
-    skel.Name = setup.Name;
+    skel.Locator = setup.Locator;
     skel.NumBones = setup.Bones.Size();
     const int matrixPoolIndex = this->matrixPool.Size();
     for (const auto& bone : setup.Bones) {
@@ -265,7 +265,7 @@ animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
     }
 
     // register the new resource, and done
-    this->resContainer.registry.Add(setup.Name, resId, this->resContainer.PeekLabel());
+    this->resContainer.registry.Add(setup.Locator, resId, this->resContainer.PeekLabel());
     this->skelPool.UpdateState(resId, ResourceState::Valid);
     return resId;
 }

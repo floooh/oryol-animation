@@ -33,7 +33,7 @@ TEST(AnimLibraryTest) {
     CHECK(mgr.valuePool != nullptr);
 
     AnimLibrarySetup libSetup;
-    libSetup.Name = "human";
+    libSetup.Locator = "human";
     libSetup.CurveLayout = {
         AnimCurveFormat::Float2,
         AnimCurveFormat::Float3,
@@ -66,7 +66,7 @@ TEST(AnimLibraryTest) {
     CHECK(mgr.curvePool.Size() == 6);
     CHECK(mgr.numKeys == 110);
     const AnimLibrary* lib1Ptr = mgr.lookupLibrary(lib1);
-    CHECK(lib1Ptr->Name == "human");
+    CHECK(lib1Ptr->Locator.Location() == "human");
     CHECK(lib1Ptr->SampleStride == 9);
     CHECK(lib1Ptr->Clips.Size() == 2);
     CHECK(lib1Ptr->Clips[0].Name == "clip1");
@@ -132,7 +132,7 @@ TEST(AnimLibraryTest) {
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[2].StaticValue[2], 10.0f, 0.001f);
     CHECK_CLOSE(lib1Ptr->Clips[1].Curves[2].StaticValue[3], 9.0f, 0.001f);
     
-    libSetup.Name = "Bla";
+    libSetup.Locator = "Bla";
     Id lib2 = mgr.createLibrary(libSetup);
     CHECK(lib2.IsValid());
     CHECK(mgr.lookupLibrary(lib2) != nullptr);
@@ -141,7 +141,7 @@ TEST(AnimLibraryTest) {
     CHECK(mgr.curvePool.Size() == 12);
     CHECK(mgr.numKeys == 220);
     const AnimLibrary* lib2Ptr = mgr.lookupLibrary(lib2);
-    CHECK(lib2Ptr->Name == "Bla");
+    CHECK(lib2Ptr->Locator.Location() == "Bla");
     CHECK(lib2Ptr->SampleStride == 9);
     CHECK(lib2Ptr->Clips.Size() == 2);
     CHECK(lib2Ptr->Clips[0].Name == "clip1");
