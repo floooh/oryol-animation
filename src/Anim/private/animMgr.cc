@@ -568,7 +568,7 @@ animMgr::genSkinMatrices(animInstance* inst) {
         m0[8]=sz*(2.0f*(qxz+qwy));      m0[9]=sz*(2.0f*(qyz-qwx));      m0[10]=sz*(1.0f-2.0f*(qxx+qyy));
         m0[12]=tx;                      m0[13]=ty;                      m0[14]=tz;
 
-        // multiply with parent bone matrix, and with inverse bind pose to get skin matrix
+        // multiply with parent bone matrix
         const int32_t parentIndex = parentIndices[boneIndex];
         const float* m;
         if (-1 != parentIndex) {
