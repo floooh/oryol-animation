@@ -243,7 +243,6 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
                 else {
                     // NOTE: simply use linear interpolation for quaternions,
                     // just assume they are close together
-                    o_assert_dbg(src0 && src1);
                     if (num >= 1) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
                     if (num >= 2) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
                     if (num >= 3) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
@@ -271,7 +270,6 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
                     if (num >= 4) { s0=*dst; s1=curve.StaticValue[3]; *dst++=s0+(s1-s0)*weight; }
                 }
                 else {
-                    o_assert_dbg(src0 && src1);
                     if (num >= 1) {
                         v0=*src0++; v1=*src1++;
                         s0=*dst; s1=v0+(v1-v0)*keyPos;

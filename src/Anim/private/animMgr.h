@@ -106,7 +106,6 @@ public:
     int skinMatrixTableStride = 0;  // in number of floats
     Slice<float> skinMatrixTable;
     float* skinMatrixPool = nullptr;
-    float tmpBoneMatrices[AnimConfig::MaxNumSkeletonBones][16];
 };
 
 } // namespace _priv

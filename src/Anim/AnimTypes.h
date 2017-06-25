@@ -227,7 +227,7 @@ struct AnimCurve {
     /// is the curve static? (no actual keys in key pool)
     bool Static = false;
     /// the static value if the curve has no keys
-    glm::vec4 StaticValue;
+    float StaticValue[4];
     /// stride in float (according to format)
     int KeyStride = 0;
     /// index of the first key in key pool (relative to clip)
