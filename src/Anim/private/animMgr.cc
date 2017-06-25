@@ -490,12 +490,15 @@ animMgr::addActiveInstance(animInstance* inst) {
 void
 animMgr::evaluate(double frameDur) {
     o_assert_dbg(this->inFrame);
-    // first evaluate all active animations
+    // garbage-collect anim jobs in all active instances
     for (animInstance* inst : this->activeInstances) {
         inst->sequencer.garbageCollect(this->curTime);
+    }
+    // evaluate animation of all active instances
+    for (animInstance* inst : this->activeInstances) {
         inst->sequencer.eval(inst->library, this->curTime, inst->samples.begin(), inst->samples.Size());
     }
-    // compute the skinning matrices for all active instances
+    // compute the skinning matrices for all active instances (which have skeletons)
     for (animInstance* inst : this->activeInstances) {
         if (inst->skeleton) {
             this->genSkinMatrices(inst);
