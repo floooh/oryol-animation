@@ -540,7 +540,7 @@ mx_copy(const float* src, float* dst) {
 void
 animMgr::genSkinMatrices(animInstance* inst) {
     o_assert_dbg(inst && inst->skeleton);
-    const auto& parentIndices = inst->skeleton->ParentIndices;
+    const int32_t* parentIndices = &inst->skeleton->ParentIndices[0];
     // pointer to skeleton's inverse bind pose matrices
     const float* invBindPose = &(inst->skeleton->InvBindPose[0][0][0]);
     // output are transposed 4x3 matrices ready for upload to GPU
@@ -569,7 +569,7 @@ animMgr::genSkinMatrices(animInstance* inst) {
         m0[12]=tx;                      m0[13]=ty;                      m0[14]=tz;
 
         // multiply with parent bone matrix, and with inverse bind pose to get skin matrix
-        const int16_t parentIndex = parentIndices[boneIndex];
+        const int32_t parentIndex = parentIndices[boneIndex];
         const float* m;
         if (-1 != parentIndex) {
             mx_mul3x4(&tmpBoneMatrices[parentIndex][0], m0, m1);

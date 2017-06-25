@@ -306,7 +306,7 @@ struct AnimSkeleton : public ResourceBase {
     /// this is the range of all matrices (BindPose and InvBindPose)
     Slice<glm::mat4> Matrices;
     /// the parent bone indices (-1 if a root bone)
-    StaticArray<int16_t, AnimConfig::MaxNumSkeletonBones> ParentIndices;
+    StaticArray<int32_t, AnimConfig::MaxNumSkeletonBones> ParentIndices;
 
     /// clear the object
     void clear() {
