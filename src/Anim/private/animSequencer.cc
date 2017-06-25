@@ -268,7 +268,7 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
                     if (num >= 1) { s0=*dst; s1=curve.StaticValue[0]; *dst++=s0+(s1-s0)*weight; }
                     if (num >= 2) { s0=*dst; s1=curve.StaticValue[1]; *dst++=s0+(s1-s0)*weight; }
                     if (num >= 3) { s0=*dst; s1=curve.StaticValue[2]; *dst++=s0+(s1-s0)*weight; }
-                    if (num >= 4) { s0=*dst; s1=curve.StaticValue[2]; *dst++=s0+(s1-s0)*weight; }
+                    if (num >= 4) { s0=*dst; s1=curve.StaticValue[3]; *dst++=s0+(s1-s0)*weight; }
                 }
                 else {
                     o_assert_dbg(src0 && src1);
