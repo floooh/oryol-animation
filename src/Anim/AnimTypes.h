@@ -246,7 +246,7 @@ struct AnimClip {
     /// the length of the clip in number of keys
     int Length = 0;
     /// the time duration from one key to next
-    float KeyDuration = 1.0f / 25.0f;
+    double KeyDuration = 1.0f / 25.0f;
     /// the stride in floats from one key of a curve to next in key pool
     int KeyStride = 0;
     /// access to the clip's curves

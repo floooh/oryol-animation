@@ -217,7 +217,7 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
             o_assert_dbg(clip.KeyDuration > 0.0f);
             const double clipTime = curTime - item.absStartTime;
             key0 = int(clipTime / clip.KeyDuration);
-            keyPos = (clipTime - (key0 * clip.KeyDuration)) / clip.KeyDuration;
+            keyPos = float((clipTime - (key0 * clip.KeyDuration)) / clip.KeyDuration);
             key0 = clampKeyIndex(key0, clip.Length);
             key1 = clampKeyIndex(key0 + 1, clip.Length);
         }
