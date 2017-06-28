@@ -10,6 +10,7 @@
 #include "Resource/Locator.h"
 #include <glm/vec4.hpp>
 #include <glm/mat4x4.hpp>
+#include <glm/mat4x3.hpp>
 
 namespace Oryol {
 
@@ -300,11 +301,11 @@ struct AnimSkeleton : public ResourceBase {
     /// number of bones in the skeleton
     int NumBones = 0;
     /// the bind pose matrices (non-inverse)
-    Slice<glm::mat4> BindPose;
+    Slice<glm::mat4x3> BindPose;
     /// the inverse bind pose matrices
-    Slice<glm::mat4> InvBindPose;
+    Slice<glm::mat4x3> InvBindPose;
     /// this is the range of all matrices (BindPose and InvBindPose)
-    Slice<glm::mat4> Matrices;
+    Slice<glm::mat4x3> Matrices;
     /// the parent bone indices (-1 if a root bone)
     StaticArray<int32_t, AnimConfig::MaxNumSkeletonBones> ParentIndices;
 

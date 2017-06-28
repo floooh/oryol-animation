@@ -54,7 +54,7 @@ public:
     /// remove a range of clips from clip pool, and fixup libraries
     void removeClips(Slice<AnimClip> clipRange);
     /// remove a range of matrices from the matrix pool
-    void removeMatrices(Slice<glm::mat4> matrixRange);
+    void removeMatrices(Slice<glm::mat4x3> matrixRange);
 
     /// write animition library keys
     void writeKeys(AnimLibrary* lib, const uint8_t* ptr, int numBytes);
@@ -93,7 +93,7 @@ public:
     ResourcePool<animInstance> instPool;
     Array<AnimClip> clipPool;
     Array<AnimCurve> curvePool;
-    Array<glm::mat4> matrixPool;
+    Array<glm::mat4x3> matrixPool;
     Array<animInstance*> activeInstances;
     AnimSkinMatrixInfo skinMatrixInfo;
     int numKeys = 0;

@@ -254,10 +254,10 @@ animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
     skel.NumBones = setup.Bones.Size();
     const int matrixPoolIndex = this->matrixPool.Size();
     for (const auto& bone : setup.Bones) {
-        this->matrixPool.Add(bone.BindPose);
+        this->matrixPool.Add(glm::mat4x3(bone.BindPose));
     }
     for (const auto& bone : setup.Bones) {
-        this->matrixPool.Add(bone.InvBindPose);
+        this->matrixPool.Add(glm::mat4x3(bone.InvBindPose));
     }
     skel.Matrices = this->matrixPool.MakeSlice(matrixPoolIndex, skel.NumBones * 2);
     skel.BindPose = skel.Matrices.MakeSlice(0, skel.NumBones);
@@ -387,7 +387,7 @@ animMgr::removeClips(Slice<AnimClip> range) {
 
 //------------------------------------------------------------------------------
 void
-animMgr::removeMatrices(Slice<glm::mat4> range) {
+animMgr::removeMatrices(Slice<glm::mat4x3> range) {
     this->matrixPool.EraseRange(range.Offset(), range.Size());
 
     // fix the skeleton matrix slices
@@ -512,26 +512,42 @@ animMgr::evaluate(double frameDur) {
 
 //------------------------------------------------------------------------------
 static void
-mx_mul3x4(const float* m1, const float* m2, float* m) {
-    // assume that last column in both matrices is 0,0,0,1
-    m[0]  = m1[0]*m2[0] + m1[4]*m2[1] + m1[8] *m2[2];
-    m[1]  = m1[1]*m2[0] + m1[5]*m2[1] + m1[9] *m2[2];
-    m[2]  = m1[2]*m2[0] + m1[6]*m2[1] + m1[10]*m2[2];
-    m[4]  = m1[0]*m2[4] + m1[4]*m2[5] + m1[8] *m2[6];
-    m[5]  = m1[1]*m2[4] + m1[5]*m2[5] + m1[9] *m2[6];
-    m[6]  = m1[2]*m2[4] + m1[6]*m2[5] + m1[10]*m2[6];
-    m[8]  = m1[0]*m2[8] + m1[4]*m2[9] + m1[8] *m2[10];
-    m[9]  = m1[1]*m2[8] + m1[5]*m2[9] + m1[9] *m2[10];
-    m[10] = m1[2]*m2[8] + m1[6]*m2[9] + m1[10]*m2[10];
-    m[12] = m1[0]*m2[12] + m1[4]*m2[13] + m1[8] *m2[14] + m1[12];
-    m[13] = m1[1]*m2[12] + m1[5]*m2[13] + m1[9] *m2[14] + m1[13];
-    m[14] = m1[2]*m2[12] + m1[6]*m2[13] + m1[10]*m2[14] + m1[14];
+mx_mul4x3(const float* m1, const float* m2, float* m) {
+    m[0]  = m1[0]*m2[0] + m1[3]*m2[1] + m1[6] *m2[2];
+    m[1]  = m1[1]*m2[0] + m1[4]*m2[1] + m1[7] *m2[2];
+    m[2]  = m1[2]*m2[0] + m1[5]*m2[1] + m1[8] *m2[2];
+    m[3]  = m1[0]*m2[3] + m1[3]*m2[4] + m1[6] *m2[5];
+    m[4]  = m1[1]*m2[3] + m1[4]*m2[4] + m1[7] *m2[5];
+    m[5]  = m1[2]*m2[3] + m1[5]*m2[4] + m1[8] *m2[5];
+    m[6]  = m1[0]*m2[6] + m1[3]*m2[7] + m1[6] *m2[8];
+    m[7]  = m1[1]*m2[6] + m1[4]*m2[7] + m1[7] *m2[8];
+    m[8]  = m1[2]*m2[6] + m1[5]*m2[7] + m1[8] *m2[8];
+    m[9]  = m1[0]*m2[9] + m1[3]*m2[10] + m1[6] *m2[11] + m1[9];
+    m[10] = m1[1]*m2[9] + m1[4]*m2[10] + m1[7] *m2[11] + m1[10];
+    m[11] = m1[2]*m2[9] + m1[5]*m2[10] + m1[8] *m2[11] + m1[11];
+}
+
+//------------------------------------------------------------------------------
+static void
+mx_mul4x3_transpose(const float* m1, const float* m2, float* m) {
+    m[0]  = m1[0]*m2[0] + m1[3]*m2[1]  + m1[6] *m2[2];
+    m[1]  = m1[0]*m2[3] + m1[3]*m2[4]  + m1[6] *m2[5];
+    m[2]  = m1[0]*m2[6] + m1[3]*m2[7]  + m1[6] *m2[8];
+    m[3]  = m1[0]*m2[9] + m1[3]*m2[10] + m1[6] *m2[11] + m1[9];
+    m[4]  = m1[1]*m2[0] + m1[4]*m2[1]  + m1[7] *m2[2];
+    m[5]  = m1[1]*m2[3] + m1[4]*m2[4]  + m1[7] *m2[5];
+    m[6]  = m1[1]*m2[6] + m1[4]*m2[7]  + m1[7] *m2[8];
+    m[7]  = m1[1]*m2[9] + m1[4]*m2[10] + m1[7] *m2[11] + m1[10];
+    m[8]  = m1[2]*m2[0] + m1[5]*m2[1]  + m1[8] *m2[2];
+    m[9]  = m1[2]*m2[3] + m1[5]*m2[4]  + m1[8] *m2[5];
+    m[10] = m1[2]*m2[6] + m1[5]*m2[7]  + m1[8] *m2[8];
+    m[11] = m1[2]*m2[9] + m1[5]*m2[10] + m1[8] *m2[11] + m1[11];
 }
 
 //------------------------------------------------------------------------------
 static void
 mx_copy(const float* src, float* dst) {
-    for (int i = 0; i < 16; i++) {
+    for (int i = 0; i < 12; i++) {
         dst[i] = src[i];
     }
 }
@@ -548,31 +564,28 @@ animMgr::genSkinMatrices(animInstance* inst) {
     // input samples (result of animation evaluation)
     const float* smp = &(inst->samples[0]);
 
-    float m0[16], m1[16], m2[16];
-    m0[3]=m0[7]=m0[11]=0.0f; m0[15]=1.0f;
-    m1[3]=m1[7]=m1[11]=0.0f; m1[15]=1.0f;
-    m2[3]=m2[7]=m2[11]=0.0f; m2[15]=1.0f;
-    float tmpBoneMatrices[AnimConfig::MaxNumSkeletonBones][16];
+    float m0[12], m1[12];
+    float tmpBoneMatrices[AnimConfig::MaxNumSkeletonBones][12];
     const int numBones = inst->skeleton->NumBones;
-    for (int boneIndex=0, i=0, j=0; boneIndex<numBones; boneIndex++, i+=10, j+=12) {
+    for (int boneIndex=0; boneIndex<numBones; boneIndex++, smp+=10, outSkinMatrices+=12) {
 
         // samples bone translate, rotate (quat), scale to matrix
-        float tx=smp[i+0]; float ty=smp[i+1]; float tz=smp[i+2];
-        float qx=smp[i+3]; float qy=smp[i+4]; float qz=smp[i+5]; float qw=smp[i+6];
-        float sx=smp[i+7]; float sy=smp[i+8]; float sz=smp[i+9];
+        float tx=smp[0]; float ty=smp[1]; float tz=smp[2];
+        float qx=smp[3]; float qy=smp[4]; float qz=smp[5]; float qw=smp[6];
+        float sx=smp[7]; float sy=smp[8]; float sz=smp[9];
         float qxx=qx*qx; float qyy=qy*qy; float qzz=qz*qz;
         float qxz=qx*qz; float qxy=qx*qy; float qyz=qy*qz;
         float qwx=qw*qx; float qwy=qw*qy; float qwz=qw*qz;
         m0[0]=sx*(1.0f-2.0f*(qyy+qzz)); m0[1]=sx*(2.0f*(qxy+qwz));      m0[2]=sx*(2.0f*(qxz-qwy));
-        m0[4]=sy*(2.0f*(qxy-qwz));      m0[5]=sy*(1.0f-2.0f*(qxx+qzz)); m0[6]=sy*(2.0f*(qyz+qwx));
-        m0[8]=sz*(2.0f*(qxz+qwy));      m0[9]=sz*(2.0f*(qyz-qwx));      m0[10]=sz*(1.0f-2.0f*(qxx+qyy));
-        m0[12]=tx;                      m0[13]=ty;                      m0[14]=tz;
+        m0[3]=sy*(2.0f*(qxy-qwz));      m0[4]=sy*(1.0f-2.0f*(qxx+qzz)); m0[5]=sy*(2.0f*(qyz+qwx));
+        m0[6]=sz*(2.0f*(qxz+qwy));      m0[7]=sz*(2.0f*(qyz-qwx));      m0[8]=sz*(1.0f-2.0f*(qxx+qyy));
+        m0[9]=tx;                       m0[10]=ty;                      m0[11]=tz;
 
         // multiply with parent bone matrix
         const int32_t parentIndex = parentIndices[boneIndex];
         const float* m;
         if (-1 != parentIndex) {
-            mx_mul3x4(&tmpBoneMatrices[parentIndex][0], m0, m1);
+            mx_mul4x3(&tmpBoneMatrices[parentIndex][0], m0, m1);
             m = m1;
         }
         else {
@@ -580,22 +593,8 @@ animMgr::genSkinMatrices(animInstance* inst) {
         }
         mx_copy(m, &tmpBoneMatrices[boneIndex][0]);
 
-        // multiply with inverse bind pose matrix to get skin matrix
-        mx_mul3x4(m, &invBindPose[boneIndex * 16], m2);
-
-        // write transposed skin matrix ready for skinning shader
-        outSkinMatrices[j+0] = m2[0]; // xxxx
-        outSkinMatrices[j+1] = m2[4];
-        outSkinMatrices[j+2] = m2[8];
-        outSkinMatrices[j+3] = m2[12];
-        outSkinMatrices[j+4] = m2[1]; // yyyy
-        outSkinMatrices[j+5] = m2[5];
-        outSkinMatrices[j+6] = m2[9];
-        outSkinMatrices[j+7] = m2[13];
-        outSkinMatrices[j+8] = m2[2]; // zzzz
-        outSkinMatrices[j+9] = m2[6];
-        outSkinMatrices[j+10] = m2[10];
-        outSkinMatrices[j+11] = m2[14];
+        // multiply with inverse bind pose matrix into transposed skin matrix
+        mx_mul4x3_transpose(m, &invBindPose[boneIndex * 12], outSkinMatrices);
     }
 }
 
