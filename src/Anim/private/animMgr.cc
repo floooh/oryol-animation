@@ -27,14 +27,10 @@ animMgr::setup(const AnimSetup& setup) {
     this->libPool.Setup(resTypeLib, setup.MaxNumLibs);
     this->skelPool.Setup(resTypeSkeleton, setup.MaxNumSkeletons);
     this->instPool.Setup(resTypeInstance, setup.MaxNumInstances);
-    this->clipPool.SetAllocStrategy(0, 0);  // disable reallocation
-    this->clipPool.Reserve(setup.ClipPoolCapacity);
-    this->curvePool.SetAllocStrategy(0, 0); // disable reallocation
-    this->curvePool.Reserve(setup.CurvePoolCapacity);
-    this->matrixPool.SetAllocStrategy(0, 0);
-    this->matrixPool.Reserve(setup.MatrixPoolCapacity);
-    this->activeInstances.SetAllocStrategy(0, 0);
-    this->activeInstances.Reserve(setup.MaxNumActiveInstances);
+    this->clipPool.SetFixedCapacity(setup.ClipPoolCapacity);
+    this->curvePool.SetFixedCapacity(setup.CurvePoolCapacity);
+    this->matrixPool.SetFixedCapacity(setup.MatrixPoolCapacity);
+    this->activeInstances.SetFixedCapacity(setup.MaxNumActiveInstances);
     this->skinMatrixInfo.InstanceInfos.Reserve(setup.MaxNumActiveInstances);
     const int numValues = setup.KeyPoolCapacity + setup.SamplePoolCapacity;
     this->valuePool = (float*) Memory::Alloc(numValues * sizeof(float));
