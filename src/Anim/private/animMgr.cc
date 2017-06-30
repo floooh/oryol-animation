@@ -31,7 +31,7 @@ animMgr::setup(const AnimSetup& setup) {
     this->curvePool.SetFixedCapacity(setup.CurvePoolCapacity);
     this->matrixPool.SetFixedCapacity(setup.MatrixPoolCapacity);
     this->activeInstances.SetFixedCapacity(setup.MaxNumActiveInstances);
-    this->skinMatrixInfo.InstanceInfos.Reserve(setup.MaxNumActiveInstances);
+    this->skinMatrixInfo.InstanceInfos.SetFixedCapacity(setup.MaxNumActiveInstances);
     const int numValues = setup.KeyPoolCapacity + setup.SamplePoolCapacity;
     this->valuePool = (float*) Memory::Alloc(numValues * sizeof(float));
     this->keys = Slice<float>(this->valuePool, numValues, 0, setup.KeyPoolCapacity);
