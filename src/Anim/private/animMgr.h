@@ -48,7 +48,7 @@ public:
     void destroyInstance(const Id& resId);
 
     /// remove a range of keys from key pool and fixup indices in curves and clips
-    void removeKeys(Slice<float> keyRange);
+    void removeKeys(Slice<int16_t> keyRange);
     /// remove a range of curves from curve pool, and fixup clips
     void removeCurves(Slice<AnimCurve> curveRange);
     /// remove a range of clips from clip pool, and fixup libraries
@@ -97,10 +97,11 @@ public:
     Array<animInstance*> activeInstances;
     AnimSkinMatrixInfo skinMatrixInfo;
     int numKeys = 0;
-    Slice<float> keys;
+    Slice<int16_t> keys;
+    int16_t* keyPool;
     int numSamples = 0;
     Slice<float> samples;
-    float* valuePool = nullptr;
+    float* samplePool = nullptr;
     int curSkinMatrixTableX = 0;
     int curSkinMatrixTableY = 0;
     int skinMatrixTableStride = 0;  // in number of floats

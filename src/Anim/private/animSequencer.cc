@@ -195,6 +195,11 @@ static int clampKeyIndex(int keyIndex, int clipNumKeys) {
 }
 
 //------------------------------------------------------------------------------
+static float unpack(int16_t p, float m) {
+    return float(p) * m;
+}
+
+//------------------------------------------------------------------------------
 bool
 animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer, int numSamples) {
 
@@ -223,8 +228,8 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
         }
 
         // only sample, or sample and mix with previous track?
-        const float* src0 = clip.Keys.Empty() ? nullptr : &(clip.Keys[key0 * clip.KeyStride]);
-        const float* src1 = clip.Keys.Empty() ? nullptr : &(clip.Keys[key1 * clip.KeyStride]);
+        const int16_t* src0 = clip.Keys.Empty() ? nullptr : &(clip.Keys[key0 * clip.KeyStride]);
+        const int16_t* src1 = clip.Keys.Empty() ? nullptr : &(clip.Keys[key1 * clip.KeyStride]);
         float* dst = sampleBuffer;
         #if ORYOL_DEBUG
         const float* dstEnd = dst + numSamples;
@@ -243,10 +248,11 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
                 else {
                     // NOTE: simply use linear interpolation for quaternions,
                     // just assume they are close together
-                    if (num >= 1) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
-                    if (num >= 2) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
-                    if (num >= 3) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
-                    if (num >= 4) { v0=*src0++; v1=*src1++; *dst++=v0+(v1-v0)*keyPos; }
+                    const float* m = curve.Magnitude;
+                    if (num >= 1) { v0=unpack(*src0++,m[0]); v1=unpack(*src1++,m[0]); *dst++=v0+(v1-v0)*keyPos; }
+                    if (num >= 2) { v0=unpack(*src0++,m[1]); v1=unpack(*src1++,m[1]); *dst++=v0+(v1-v0)*keyPos; }
+                    if (num >= 3) { v0=unpack(*src0++,m[2]); v1=unpack(*src1++,m[2]); *dst++=v0+(v1-v0)*keyPos; }
+                    if (num >= 4) { v0=unpack(*src0++,m[3]); v1=unpack(*src1++,m[3]); *dst++=v0+(v1-v0)*keyPos; }
                 }
             }
         }
@@ -270,23 +276,24 @@ animSequencer::eval(const AnimLibrary* lib, double curTime, float* sampleBuffer,
                     if (num >= 4) { s0=*dst; s1=curve.StaticValue[3]; *dst++=s0+(s1-s0)*weight; }
                 }
                 else {
+                    const float* m = curve.Magnitude;
                     if (num >= 1) {
-                        v0=*src0++; v1=*src1++;
+                        v0=unpack(*src0++,m[0]); v1=unpack(*src1++,m[0]);
                         s0=*dst; s1=v0+(v1-v0)*keyPos;
                         *dst++=s0+(s1-s0)*weight;
                     }
                     if (num >= 2) {
-                        v0=*src0++; v1=*src1++;
+                        v0=unpack(*src0++,m[1]); v1=unpack(*src1++,m[1]);
                         s0=*dst; s1=v0+(v1-v0)*keyPos;
                         *dst++=s0+(s1-s0)*weight;
                     }
                     if (num >= 3) {
-                        v0=*src0++; v1=*src1++;
+                        v0=unpack(*src0++,m[2]); v1=unpack(*src1++,m[2]);
                         s0=*dst; s1=v0+(v1-v0)*keyPos;
                         *dst++=s0+(s1-s0)*weight;
                     }
                     if (num >= 4) {
-                        v0=*src0++; v1=*src1++;
+                        v0=unpack(*src0++,m[3]); v1=unpack(*src1++,m[3]);
                         s0=*dst; s1=v0+(v1-v0)*keyPos;
                         *dst++=s0+(s1-s0)*weight;
                     }

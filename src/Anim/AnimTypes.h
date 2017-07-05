@@ -102,6 +102,8 @@ struct AnimCurveSetup {
     bool Static = false;
     /// the default value of the curve
     glm::vec4 StaticValue;
+    /// the max magnitude of keys in the curve (used to unpack key values)
+    glm::vec4 Magnitude;
     
     /// default constructor
     AnimCurveSetup() { };
@@ -229,7 +231,9 @@ struct AnimCurve {
     bool Static = false;
     /// the static value if the curve has no keys
     float StaticValue[4];
-    /// stride in float (according to format)
+    /// the key magnitude (for unpacking keys)
+    float Magnitude[4];
+    /// stride in key elements (according to format)
     int KeyStride = 0;
     /// index of the first key in key pool (relative to clip)
     int KeyIndex = InvalidIndex;
@@ -248,12 +252,12 @@ struct AnimClip {
     int Length = 0;
     /// the time duration from one key to next
     double KeyDuration = 1.0f / 25.0f;
-    /// the stride in floats from one key of a curve to next in key pool
+    /// the stride in key elements from one key of a curve to next in key pool
     int KeyStride = 0;
     /// access to the clip's curves
     Slice<AnimCurve> Curves;
     /// access to the clip's 2D key table
-    Slice<float> Keys;
+    Slice<int16_t> Keys;
 };
 
 //------------------------------------------------------------------------------
@@ -272,7 +276,7 @@ struct AnimLibrary : public ResourceBase {
     /// array view over all curves of all clips
     Slice<AnimCurve> Curves;
     /// array view over all keys of all clips
-    Slice<float> Keys;
+    Slice<int16_t> Keys;
     /// map clip names to clip indices
     Map<StringAtom, int> ClipIndexMap;
     /// the curve layout (all clips in the library have the same layout)

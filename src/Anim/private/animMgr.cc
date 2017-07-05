@@ -32,10 +32,10 @@ animMgr::setup(const AnimSetup& setup) {
     this->matrixPool.SetFixedCapacity(setup.MatrixPoolCapacity);
     this->activeInstances.SetFixedCapacity(setup.MaxNumActiveInstances);
     this->skinMatrixInfo.InstanceInfos.SetFixedCapacity(setup.MaxNumActiveInstances);
-    const int numValues = setup.KeyPoolCapacity + setup.SamplePoolCapacity;
-    this->valuePool = (float*) Memory::Alloc(numValues * sizeof(float));
-    this->keys = Slice<float>(this->valuePool, numValues, 0, setup.KeyPoolCapacity);
-    this->samples = Slice<float>(this->valuePool, numValues, setup.KeyPoolCapacity, setup.SamplePoolCapacity);
+    this->keyPool = (int16_t*) Memory::Alloc(setup.KeyPoolCapacity * sizeof(int16_t));
+    this->samplePool = (float*) Memory::Alloc(setup.SamplePoolCapacity * sizeof(float));
+    this->keys = Slice<int16_t>(this->keyPool, setup.KeyPoolCapacity, 0, setup.KeyPoolCapacity);
+    this->samples = Slice<float>(this->samplePool, setup.SamplePoolCapacity, 0, setup.SamplePoolCapacity);
     this->skinMatrixTableStride = setup.SkinMatrixTableWidth * 4;
     const int skinMatrixPoolNumFloats = this->skinMatrixTableStride * setup.SkinMatrixTableHeight;
     const int skinMatrixPoolSize = skinMatrixPoolNumFloats * sizeof(float);
@@ -49,7 +49,8 @@ animMgr::setup(const AnimSetup& setup) {
 void
 animMgr::discard() {
     o_assert_dbg(this->isValid);
-    o_assert_dbg(this->valuePool);
+    o_assert_dbg(this->keyPool);
+    o_assert_dbg(this->samplePool);
     o_assert_dbg(this->skinMatrixPool);
 
     this->destroy(ResourceLabel::All);
@@ -66,8 +67,10 @@ animMgr::discard() {
     this->skinMatrixTable.Reset();
     Memory::Free(this->skinMatrixPool);
     this->skinMatrixPool = nullptr;
-    Memory::Free(this->valuePool);
-    this->valuePool = nullptr;
+    Memory::Free(this->keyPool);
+    this->keyPool = nullptr;
+    Memory::Free(this->samplePool);
+    this->samplePool = nullptr;
     this->isValid = false;
 }
 
@@ -165,6 +168,8 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
             curve.NumValues = AnimCurveFormat::Stride(curve.Format);
             for (int i = 0; i < 4; i++) {
                 curve.StaticValue[i] = curveSetup.StaticValue[i];
+                // premultiply magnitude for 16-bit signed unpacking
+                curve.Magnitude[i] = curveSetup.Magnitude[i] / 32767.0f;
             }
             if (!curve.Static) {
                 curve.KeyIndex = clip.KeyStride;
@@ -186,6 +191,8 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     lib.Clips = this->clipPool.MakeSlice(clipPoolIndex, libSetup.Clips.Size());
 
     // initialize clips with their default values
+    /*
+    FIXME FIXME FIXME
     for (auto& clip : lib.Clips) {
         for (int row = 0; row < clip.Length; row++) {
             int offset = row * clip.KeyStride;
@@ -196,6 +203,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
             }
         }
     }
+    */
 
     this->resContainer.registry.Add(libSetup.Locator, resId, this->resContainer.PeekLabel());
     this->libPool.UpdateState(resId, ResourceState::Valid);
@@ -326,8 +334,8 @@ animMgr::destroyInstance(const Id& id) {
 
 //------------------------------------------------------------------------------
 void
-animMgr::removeKeys(Slice<float> range) {
-    o_assert_dbg(this->valuePool);
+animMgr::removeKeys(Slice<int16_t> range) {
+    o_assert_dbg(this->keyPool);
     if (range.Empty()) {
         return;
     }
@@ -400,7 +408,7 @@ animMgr::removeMatrices(Slice<glm::mat4x3> range) {
 void
 animMgr::writeKeys(AnimLibrary* lib, const uint8_t* ptr, int numBytes) {
     o_assert_dbg(lib && ptr && numBytes > 0);
-    o_assert_dbg(lib->Keys.Size()*sizeof(float) == numBytes);
+    o_assert_dbg(lib->Keys.Size()*sizeof(int16_t) == numBytes);
     Memory::Copy(ptr, lib->Keys.begin(), numBytes);
 }
 
