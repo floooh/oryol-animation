@@ -408,7 +408,12 @@ animMgr::removeMatrices(Slice<glm::mat4x3> range) {
 void
 animMgr::writeKeys(AnimLibrary* lib, const uint8_t* ptr, int numBytes) {
     o_assert_dbg(lib && ptr && numBytes > 0);
-    o_assert_dbg(lib->Keys.Size()*sizeof(int16_t) == numBytes);
+    // if more bytes are incoming that are needed, just silently clamp
+    // the size, this may happen because of alignment padding
+    const int keyDataSize = lib->Keys.Size() * sizeof(int16_t);
+    if (numBytes > keyDataSize) {
+        numBytes = keyDataSize;
+    }
     Memory::Copy(ptr, lib->Keys.begin(), numBytes);
 }
 
