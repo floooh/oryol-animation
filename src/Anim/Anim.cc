@@ -53,21 +53,21 @@ Anim::CurrentTime() {
 ResourceLabel
 Anim::PushLabel() {
     o_assert_dbg(IsValid());
-    return state->mgr.resContainer.PushLabel();
+    return state->mgr.labelStack.PushLabel();
 }
 
 //------------------------------------------------------------------------------
 void
 Anim::PushLabel(ResourceLabel label) {
     o_assert_dbg(IsValid());
-    state->mgr.resContainer.PushLabel(label);
+    state->mgr.labelStack.PushLabel(label);
 }
 
 //------------------------------------------------------------------------------
 ResourceLabel
 Anim::PopLabel() {
     o_assert_dbg(IsValid());
-    return state->mgr.resContainer.PopLabel();
+    return state->mgr.labelStack.PopLabel();
 }
 
 //------------------------------------------------------------------------------
@@ -95,7 +95,7 @@ Anim::Create(const AnimInstanceSetup& setup) {
 Id
 Anim::Lookup(const Locator& name) {
     o_assert_dbg(IsValid());
-    return state->mgr.resContainer.Lookup(name);
+    return state->mgr.registry.Lookup(name);
 }
 
 //------------------------------------------------------------------------------

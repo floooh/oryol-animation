@@ -5,7 +5,8 @@
     @ingroup _priv
     @brief resource container of the Anim module
 */
-#include "Resource/ResourceContainerBase.h"
+#include "Resource/ResourceRegistry.h"
+#include "Resource/ResourceLabelStack.h"
 #include "Resource/ResourcePool.h"
 #include "Anim/AnimTypes.h"
 #include "Anim/private/animInstance.h"
@@ -87,7 +88,8 @@ public:
     bool inFrame = false;
     double curTime = 0.0;
     uint32_t curAnimJobId = 0;
-    ResourceContainerBase resContainer;
+    ResourceRegistry registry;
+    ResourceLabelStack labelStack;
     ResourcePool<AnimLibrary> libPool;
     ResourcePool<AnimSkeleton> skelPool;
     ResourcePool<animInstance> instPool;
