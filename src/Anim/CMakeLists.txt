@@ -13,7 +13,7 @@ fips_begin_module(Anim)
     fips_deps(Core Resource)
 fips_end_module()
 
-fips_begin_unittest(Anim)
+oryol_begin_unittest(Anim)
     fips_vs_warning_level(3)
     fips_dir(UnitTests)
     fips_files(
@@ -22,5 +22,5 @@ fips_begin_unittest(Anim)
         animSequencerTest.cc
     )
     fips_deps(Anim)
-fips_end_unittest()
+oryol_end_unittest()
 
