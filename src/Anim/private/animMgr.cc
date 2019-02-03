@@ -23,7 +23,8 @@ animMgr::setup(const AnimSetup& setup) {
 
     this->animSetup = setup;
     this->isValid = true;
-    this->resContainer.Setup(setup.ResourceLabelStackCapacity, setup.ResourceRegistryCapacity);
+    this->registry.Setup(setup.ResourceRegistryCapacity);
+    this->labelStack.Setup(setup.ResourceLabelStackCapacity);
     this->libPool.Setup(resTypeLib, setup.MaxNumLibs);
     this->skelPool.Setup(resTypeSkeleton, setup.MaxNumSkeletons);
     this->instPool.Setup(resTypeInstance, setup.MaxNumInstances);
@@ -54,7 +55,8 @@ animMgr::discard() {
     o_assert_dbg(this->skinMatrixPool);
 
     this->destroy(ResourceLabel::All);
-    this->resContainer.Discard();
+    this->labelStack.Discard();
+    this->registry.Discard();
     this->instPool.Discard();
     this->skelPool.Discard();
     this->libPool.Discard();
@@ -78,7 +80,7 @@ animMgr::discard() {
 void
 animMgr::destroy(const ResourceLabel& label) {
     o_assert_dbg(this->isValid);
-    Array<Id> ids = this->resContainer.registry.Remove(label);
+    Array<Id> ids = this->registry.Remove(label);
     for (const Id& id : ids) {
         switch (id.Type) {
             case resTypeLib:
@@ -106,7 +108,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     o_assert_dbg(!libSetup.Clips.Empty());
 
     // check if lib already exists
-    Id resId = this->resContainer.registry.Lookup(libSetup.Locator);
+    Id resId = this->registry.Lookup(libSetup.Locator);
     if (resId.IsValid()) {
         o_assert_dbg(resId.Type == resTypeLib);
         return resId;
@@ -140,7 +142,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
 
     // create a new lib
     resId = this->libPool.AllocId();
-    AnimLibrary& lib = this->libPool.Assign(resId, ResourceState::Setup);
+    AnimLibrary& lib = this->libPool.Assign(resId, ResourceState::Alloc);
     lib.Locator = libSetup.Locator;
     lib.SampleStride = 0;
     for (AnimCurveFormat::Enum fmt : libSetup.CurveLayout) {
@@ -205,7 +207,7 @@ animMgr::createLibrary(const AnimLibrarySetup& libSetup) {
     }
     */
 
-    this->resContainer.registry.Add(libSetup.Locator, resId, this->resContainer.PeekLabel());
+    this->registry.Add(libSetup.Locator, resId, this->labelStack.PeekLabel());
     this->libPool.UpdateState(resId, ResourceState::Valid);
     return resId;
 }
@@ -239,7 +241,7 @@ animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
     o_assert_dbg(!setup.Bones.Empty());
 
     // check if skeleton already exists
-    Id resId = this->resContainer.registry.Lookup(setup.Locator);
+    Id resId = this->registry.Lookup(setup.Locator);
     if (resId.IsValid()) {
         o_assert_dbg(resId.Type == resTypeSkeleton);
         return resId;
@@ -253,7 +255,7 @@ animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
     
     // create new skeleton
     resId = this->skelPool.AllocId();
-    AnimSkeleton& skel = this->skelPool.Assign(resId, ResourceState::Setup);
+    AnimSkeleton& skel = this->skelPool.Assign(resId, ResourceState::Alloc);
     skel.Locator = setup.Locator;
     skel.NumBones = setup.Bones.Size();
     const int matrixPoolIndex = this->matrixPool.Size();
@@ -271,7 +273,7 @@ animMgr::createSkeleton(const AnimSkeletonSetup& setup) {
     }
 
     // register the new resource, and done
-    this->resContainer.registry.Add(setup.Locator, resId, this->resContainer.PeekLabel());
+    this->registry.Add(setup.Locator, resId, this->labelStack.PeekLabel());
     this->skelPool.UpdateState(resId, ResourceState::Valid);
     return resId;
 }
@@ -301,7 +303,7 @@ animMgr::createInstance(const AnimInstanceSetup& setup) {
     o_assert_dbg(setup.Library.IsValid());
     
     Id resId = this->instPool.AllocId();
-    animInstance& inst = this->instPool.Assign(resId, ResourceState::Setup);
+    animInstance& inst = this->instPool.Assign(resId, ResourceState::Alloc);
     o_assert_dbg((inst.library == nullptr) && (inst.skeleton == nullptr));
     inst.library = this->lookupLibrary(setup.Library);
     o_assert_dbg(inst.library);
@@ -309,7 +311,7 @@ animMgr::createInstance(const AnimInstanceSetup& setup) {
         inst.skeleton = this->lookupSkeleton(setup.Skeleton);
         o_assert_dbg(inst.skeleton);
     }
-    this->resContainer.registry.Add(Locator::NonShared(), resId, this->resContainer.PeekLabel());
+    this->registry.Add(Locator::NonShared(), resId, this->labelStack.PeekLabel());
     this->instPool.UpdateState(resId, ResourceState::Valid);
     return resId;
 }
